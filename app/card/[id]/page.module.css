@@ -1,0 +1,22 @@
+.container {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background: white;
+  overflow: hidden;
+}
+
+.loading,
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 18px;
+  color: #333;
+}
+
+.error {
+  color: #d32f2f;
+}
+

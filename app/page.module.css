@@ -1,0 +1,22 @@
+.main {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background: var(--pure-white);
+  overflow: hidden;
+}
+
+.main::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  background: transparent;
+  border-radius: 50%;
+  box-shadow: 0 0 60px rgba(0, 0, 0, 0.05);
+  pointer-events: none;
+  z-index: 0;
+}

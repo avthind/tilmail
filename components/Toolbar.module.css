@@ -1,0 +1,331 @@
+/* Right Toolbar - Tools */
+.rightToolbar {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 60px;
+  background: rgba(246, 241, 235, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(228, 228, 228, 0.3);
+  border-right: none;
+  border-radius: 16px 0 0 16px;
+  padding: 12px 8px;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+  transition: transform 0.3s ease;
+}
+
+.rightToolbar.collapsed {
+  transform: translateY(-50%) translateX(calc(100% - 40px));
+}
+
+.collapseButton {
+  position: absolute;
+  left: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(246, 241, 235, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(228, 228, 228, 0.3);
+  border-right: none;
+  border-radius: 16px 0 0 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: var(--grey-900);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.collapseButton:hover {
+  background: rgba(246, 241, 235, 0.9);
+}
+
+.toolbarContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toolButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toolButton {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  background: var(--pure-white);
+  border: 1px solid var(--grey-200);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 0;
+}
+
+.toolButton:hover {
+  background: var(--peach-cream);
+  border-color: var(--blush-pink);
+  transform: scale(1.05);
+}
+
+.toolButton:active {
+  transform: scale(0.95);
+}
+
+.toolButton.active {
+  background: var(--blush-pink);
+  border-color: var(--blush-pink);
+  color: var(--pure-white);
+  box-shadow: 0 4px 12px rgba(247, 201, 212, 0.4);
+}
+
+.toolIcon {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.toolButton:hover .toolIcon {
+  transform: scale(1.1);
+}
+
+.tooltip {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--grey-900);
+  color: var(--pure-white);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: 'Nunito', sans-serif;
+  white-space: nowrap;
+  z-index: 1001;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: var(--grey-900);
+}
+
+.toolDrawer {
+  position: absolute;
+  right: calc(100% + 8px);
+  top: 0;
+  width: 280px;
+  max-height: 90vh;
+  background: var(--peach-cream);
+  border: 1px solid rgba(228, 228, 228, 0.3);
+  border-radius: 16px;
+  padding: 16px;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  z-index: 1001;
+}
+
+/* Bottom Toolbar - Actions */
+.bottomToolbar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  min-width: 400px;
+  max-width: 90vw;
+  background: rgba(246, 241, 235, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(228, 228, 228, 0.3);
+  border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  padding: 12px 16px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
+}
+
+.bottomToolbarContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.viewButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.viewButton {
+  padding: 10px 20px;
+  background: var(--pure-white);
+  border: 1px solid var(--grey-200);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: 'Nunito', sans-serif;
+  color: var(--grey-900);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  position: relative;
+}
+
+.viewButton:hover:not(:disabled) {
+  background: var(--peach-cream);
+  border-color: var(--blush-pink);
+  transform: scale(1.05);
+}
+
+.viewButton:active {
+  transform: scale(0.95);
+}
+
+.viewButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.viewButton.active {
+  background: var(--pure-white);
+  color: var(--blush-pink);
+  border-color: var(--blush-pink);
+}
+
+.viewButton.active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: var(--blush-pink);
+  border-radius: 2px;
+}
+
+.sendButton {
+  padding: 10px 24px;
+  background: var(--blush-pink);
+  color: var(--pure-white);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(247, 201, 212, 0.3);
+}
+
+.sendButton:hover {
+  background: #f5b8c6;
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(247, 201, 212, 0.4);
+}
+
+.sendButton:active {
+  transform: scale(0.95);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .rightToolbar {
+    right: 0;
+    top: auto;
+    bottom: 80px;
+    transform: none;
+    width: auto;
+    border-radius: 16px 0 0 16px;
+  }
+
+  .rightToolbar.collapsed {
+    transform: translateX(calc(100% - 50px));
+  }
+
+  .toolButtons {
+    flex-direction: row;
+    gap: 4px;
+  }
+
+  .toolButton {
+    width: 40px;
+    height: 40px;
+  }
+
+  .toolDrawer {
+    position: fixed;
+    right: 0;
+    left: 0;
+    bottom: 80px;
+    top: auto;
+    width: 100%;
+    max-height: 50vh;
+    border-radius: 16px 16px 0 0;
+    border-right: none;
+    border-left: none;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .collapseButton {
+    display: none;
+  }
+
+  .bottomToolbar {
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    min-width: auto;
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    padding: 12px 16px;
+  }
+
+  .bottomToolbarContent {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .viewButtons {
+    flex: 1;
+    display: flex;
+    gap: 4px;
+  }
+
+  .viewButton {
+    flex: 1;
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .sendButton {
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    min-width: 80px;
+  }
+}

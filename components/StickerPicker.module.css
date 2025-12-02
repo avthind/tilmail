@@ -1,0 +1,51 @@
+.stickerPicker {
+  margin-top: 0;
+  padding: 0;
+}
+
+.stickerGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stickerButton {
+  aspect-ratio: 1;
+  background: var(--pure-white);
+  border: 2px solid var(--grey-200);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 0;
+}
+
+.stickerButton:hover {
+  border-color: var(--blush-pink);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(247, 201, 212, 0.3);
+}
+
+.stickerButton.selected {
+  border-color: var(--blush-pink);
+  background: var(--peach-cream);
+  box-shadow: 0 4px 12px rgba(247, 201, 212, 0.4);
+}
+
+.stickerImage {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--grey-600);
+  text-align: center;
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+}
