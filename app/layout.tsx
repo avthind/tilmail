@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'TILMail - 3D Envelope & Postcard',
+  title: 'TILmail',
   description: 'Create and share personalized 3D digital postcards',
 }
 

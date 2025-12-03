@@ -53,7 +53,13 @@ export const getStickerData = (id: string) => {
 }
 
 export default function StickerPicker() {
-  const { setSelectedSticker, selectedSticker } = useAppStore()
+  const { setSelectedSticker, selectedSticker, currentTool } = useAppStore()
+
+  const handleStickerClick = (stickerId: string) => {
+    // Industry standard: clicking a sticker selects it (doesn't toggle)
+    // User can place multiple instances by clicking on canvas
+    setSelectedSticker(stickerId)
+  }
 
   return (
     <div className={styles.stickerPicker}>
@@ -64,20 +70,34 @@ export default function StickerPicker() {
             className={`${styles.stickerButton} ${
               selectedSticker === sticker.id ? styles.selected : ''
             }`}
-            onClick={() => setSelectedSticker(selectedSticker === sticker.id ? null : sticker.id)}
+            onClick={() => handleStickerClick(sticker.id)}
             aria-label={`Select ${sticker.name} sticker`}
+            title={selectedSticker === sticker.id ? `${sticker.name} selected - Click on card to place` : `Select ${sticker.name}`}
           >
             <img
               src={getStickerSVG(sticker.id, sticker.color)}
               alt={sticker.name}
               className={styles.stickerImage}
             />
+            {selectedSticker === sticker.id && (
+              <div className={styles.checkmark}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            )}
           </button>
         ))}
       </div>
-      <p className={styles.hint}>
-        Tap to add sticker. Drag to move. Pinch to resize/rotate (mobile).
-      </p>
+      {selectedSticker ? (
+        <p className={styles.hint}>
+          ✓ Sticker selected. Click on the card to place it. Press ESC to cancel.
+        </p>
+      ) : (
+        <p className={styles.hint}>
+          Click a sticker to select it, then click on the card to place.
+        </p>
+      )}
     </div>
   )
 }

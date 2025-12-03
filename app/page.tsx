@@ -3,6 +3,7 @@
 import { Canvas } from '@react-three/fiber'
 import { Suspense } from 'react'
 import EnvelopeScene from '@/components/EnvelopeScene'
+import CardCanvas from '@/components/CardCanvas'
 import Toolbar from '@/components/Toolbar'
 import SendModal from '@/components/SendModal'
 import { useAppStore } from '@/store/appStore'
@@ -21,6 +22,7 @@ export default function Home() {
           <EnvelopeScene />
         </Suspense>
       </Canvas>
+      <CardCanvas />
       <Toolbar />
       {showSendModal && (
         <SendModal onClose={() => setShowSendModal(false)} />

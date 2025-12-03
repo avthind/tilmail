@@ -12,9 +12,10 @@ const FONTS = [
 
 const COLORS = [
   { name: 'Black', value: '#000000' },
-  { name: 'Yellow', value: '#ffd700' },
-  { name: 'Pink', value: '#ffb6c1' },
-  { name: 'Blue', value: '#87ceeb' },
+  { name: 'Red', value: '#ff0000' },
+  { name: 'Blue', value: '#0000ff' },
+  { name: 'Green', value: '#00ff00' },
+  { name: 'Yellow', value: '#ffff00' },
 ]
 
 const FONT_SIZES = [
@@ -137,7 +138,7 @@ export default function TextTool() {
         </label>
       </div>
       <p className={styles.hint}>
-        Tap on the envelope to place text. Double tap to edit existing text.
+        Click on the card to place text. Double-click to edit existing text. Drag to move.
       </p>
       <div className={styles.preview}>
         <span

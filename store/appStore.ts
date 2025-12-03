@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type DecorationMode = 'envelope-front' | 'envelope-back' | 'postcard'
+export type DecorationMode = 'front' | 'back'
 
 export interface Decoration {
   type: 'sticker' | 'text' | 'drawing'
@@ -15,16 +15,19 @@ export interface Decoration {
 export interface FaceDecorations {
   front: Decoration[]
   back: Decoration[]
-  postcard: Decoration[]
 }
 
 interface AppState {
   mode: DecorationMode
   decorations: FaceDecorations
-  isEnvelopeOpen: boolean
   showSendModal: boolean
   currentTool: 'sticker' | 'text' | 'draw' | null
   selectedSticker: string | null
+  selectedDecoration: { face: 'front' | 'back', id: string } | null
+  drawSettings: {
+    color: string
+    lineWidth: number
+  }
   textSettings: {
     fontFamily: string
     fontSize: number
@@ -35,12 +38,13 @@ interface AppState {
   setMode: (mode: DecorationMode) => void
   setTool: (tool: 'sticker' | 'text' | 'draw' | null) => void
   setSelectedSticker: (sticker: string | null) => void
+  setSelectedDecoration: (decoration: { face: 'front' | 'back', id: string } | null) => void
+  setDrawSettings: (settings: { color: string; lineWidth: number }) => void
   setTextSettings: (settings: { fontFamily: string; fontSize: number; color: string; fontWeight?: string; textDecoration?: string }) => void
-  addDecoration: (face: 'front' | 'back' | 'postcard', decoration: Decoration) => void
-  removeDecoration: (face: 'front' | 'back' | 'postcard', id: string) => void
-  updateDecoration: (face: 'front' | 'back' | 'postcard', id: string, data: any) => void
-  openEnvelope: () => void
-  closeEnvelope: () => void
+  addDecoration: (face: 'front' | 'back', decoration: Decoration) => void
+  removeDecoration: (face: 'front' | 'back', id: string) => void
+  updateDecoration: (face: 'front' | 'back', id: string, data: any) => void
+  updateDecorationPosition: (face: 'front' | 'back', id: string, x: number, y: number) => void
   setShowSendModal: (show: boolean) => void
   reset: () => void
 }
@@ -48,16 +52,19 @@ interface AppState {
 const initialDecorations: FaceDecorations = {
   front: [],
   back: [],
-  postcard: [],
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  mode: 'envelope-front',
+  mode: 'front',
   decorations: initialDecorations,
-  isEnvelopeOpen: false,
   showSendModal: false,
   currentTool: null,
   selectedSticker: null,
+  selectedDecoration: null,
+  drawSettings: {
+    color: '#000000',
+    lineWidth: 4,
+  },
   textSettings: {
     fontFamily: 'Arial, sans-serif',
     fontSize: 24,
@@ -68,6 +75,8 @@ export const useAppStore = create<AppState>((set) => ({
   setMode: (mode) => set({ mode }),
   setTool: (tool) => set({ currentTool: tool }),
   setSelectedSticker: (sticker) => set({ selectedSticker: sticker }),
+  setSelectedDecoration: (decoration) => set({ selectedDecoration: decoration }),
+  setDrawSettings: (settings) => set({ drawSettings: settings }),
   setTextSettings: (settings) => set({ textSettings: settings }),
   addDecoration: (face, decoration) =>
     set((state) => ({
@@ -92,16 +101,22 @@ export const useAppStore = create<AppState>((set) => ({
         ),
       },
     })),
-  openEnvelope: () => set({ isEnvelopeOpen: true }),
-  closeEnvelope: () => set({ isEnvelopeOpen: false }),
+  updateDecorationPosition: (face, id, x, y) =>
+    set((state) => ({
+      decorations: {
+        ...state.decorations,
+        [face]: state.decorations[face].map((d) =>
+          d.id === id ? { ...d, x, y } : d
+        ),
+      },
+    })),
   setShowSendModal: (show) => set({ showSendModal: show }),
   reset: () =>
     set({
       decorations: initialDecorations,
-      mode: 'envelope-front',
-      isEnvelopeOpen: false,
+      mode: 'front',
       currentTool: null,
       selectedSticker: null,
+      selectedDecoration: null,
     }),
 }))
-

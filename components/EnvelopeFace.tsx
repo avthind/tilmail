@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { useAppStore } from '@/store/appStore'
 
 interface EnvelopeFaceProps {
-  face: 'front' | 'back' | 'postcard'
+  face: 'front' | 'back'
   position: [number, number, number]
   rotation: [number, number, number]
   size: [number, number]
@@ -17,7 +17,7 @@ export default function EnvelopeFace({
   rotation,
   size,
 }: EnvelopeFaceProps) {
-  const { decorations } = useAppStore()
+  const { decorations, selectedDecoration } = useAppStore()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const textureRef = useRef<THREE.CanvasTexture | null>(null)
 
@@ -26,6 +26,12 @@ export default function EnvelopeFace({
     const c = document.createElement('canvas')
     c.width = 512
     c.height = 512
+    // Initialize with white background immediately
+    const ctx = c.getContext('2d')
+    if (ctx) {
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, c.width, c.height)
+    }
     return c
   }, [])
 
@@ -34,21 +40,67 @@ export default function EnvelopeFace({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Clear canvas
-    ctx.fillStyle = '#ffffff'
+    // Always start with white background
+    ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+    
+    // Update texture immediately
+    if (textureRef.current) {
+      textureRef.current.needsUpdate = true
+    }
 
     // Draw decorations
     const faceDecorations = decorations[face]
     
     // Use async function to handle image loading
     const drawDecorations = async () => {
+      // Clear and fill canvas with white background (already done above, but ensure it's there)
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
       for (const decoration of faceDecorations) {
+        const isSelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
+        const scale = decoration.data.scale || 0.1
+        const x = ((decoration.x + size[0] / 2) / size[0]) * canvas.width
+        const y = ((decoration.y + size[1] / 2) / size[1]) * canvas.height
+        
         if (decoration.type === 'sticker') {
-          // Draw sticker - use placeholder for now
-          const scale = decoration.data.scale || 0.1
-          const x = ((decoration.x + size[0] / 2) / size[0]) * canvas.width
-          const y = ((decoration.y + size[1] / 2) / size[1]) * canvas.height
+          // Draw sticker
+          const stickerSize = 64 * scale // Base size from SVG
+          
+          // Draw selection border if selected
+          if (isSelected) {
+            ctx.strokeStyle = '#6a9c89'
+            ctx.lineWidth = 3
+            ctx.setLineDash([])
+            ctx.strokeRect(
+              x - stickerSize / 2 - 8,
+              y - stickerSize / 2 - 8,
+              stickerSize + 16,
+              stickerSize + 16
+            )
+            
+            // Draw trash icon
+            const trashSize = 24
+            const trashX = x + stickerSize / 2 + 4
+            const trashY = y - stickerSize / 2 - 4
+            
+            // Trash icon background circle
+            ctx.fillStyle = '#ff4444'
+            ctx.beginPath()
+            ctx.arc(trashX, trashY, trashSize / 2, 0, Math.PI * 2)
+            ctx.fill()
+            
+            // Trash icon (X)
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 3
+            ctx.lineCap = 'round'
+            ctx.beginPath()
+            ctx.moveTo(trashX - 6, trashY - 6)
+            ctx.lineTo(trashX + 6, trashY + 6)
+            ctx.moveTo(trashX + 6, trashY - 6)
+            ctx.lineTo(trashX - 6, trashY + 6)
+            ctx.stroke()
+          }
           
           // Draw placeholder circle for sticker
           ctx.fillStyle = decoration.data.color || '#ff6b6b'
@@ -101,6 +153,42 @@ export default function EnvelopeFace({
           }
           
           ctx.fillText(decoration.data.text || '', x, y)
+          
+          // Draw selection border for text if selected
+          if (isSelected) {
+            const textWidth = ctx.measureText(decoration.data.text || '').width
+            const textHeight = fontSize
+            ctx.strokeStyle = '#6a9c89'
+            ctx.lineWidth = 2
+            ctx.setLineDash([5, 5])
+            ctx.strokeRect(
+              x - textWidth / 2 - 8,
+              y - textHeight / 2 - 8,
+              textWidth + 16,
+              textHeight + 16
+            )
+            ctx.setLineDash([])
+            
+            // Draw trash icon
+            const trashSize = 20
+            const trashX = x + textWidth / 2 + 4
+            const trashY = y - textHeight / 2 - 4
+            
+            ctx.fillStyle = '#ff4444'
+            ctx.beginPath()
+            ctx.arc(trashX, trashY, trashSize / 2, 0, Math.PI * 2)
+            ctx.fill()
+            
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 2
+            ctx.lineCap = 'round'
+            ctx.beginPath()
+            ctx.moveTo(trashX - 5, trashY - 5)
+            ctx.lineTo(trashX + 5, trashY + 5)
+            ctx.moveTo(trashX + 5, trashY - 5)
+            ctx.lineTo(trashX - 5, trashY + 5)
+            ctx.stroke()
+          }
         } else if (decoration.type === 'drawing') {
           // Draw drawing paths
           if (decoration.data.paths) {
@@ -131,20 +219,32 @@ export default function EnvelopeFace({
       }
     }
     
-    drawDecorations()
-  }, [canvas, decorations, face, size])
+    drawDecorations().then(() => {
+      if (textureRef.current) {
+        textureRef.current.needsUpdate = true
+      }
+    })
+  }, [canvas, decorations, face, size, selectedDecoration])
 
   const texture = useMemo(() => {
     const tex = new THREE.CanvasTexture(canvas)
     tex.needsUpdate = true
     textureRef.current = tex
+    // Ensure texture is updated immediately with white background
+    setTimeout(() => {
+      tex.needsUpdate = true
+    }, 0)
     return tex
   }, [canvas])
 
   return (
-    <mesh position={position} rotation={rotation}>
+    <mesh 
+      position={position} 
+      rotation={rotation}
+      userData={{ isEnvelopeFace: true, face }}
+    >
       <planeGeometry args={size} />
-      <meshStandardMaterial map={texture} transparent />
+      <meshStandardMaterial map={texture} color="#FFFFFF" />
     </mesh>
   )
 }

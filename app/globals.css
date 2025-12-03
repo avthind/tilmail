@@ -1,15 +1,34 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Nunito:wght@400;600;700&family=Kalam:wght@400;700&display=swap');
 
 :root {
+  /* Color Hunt Palette: https://colorhunt.co/palette/16423c6a9c89c4dad2e9efec */
+  --dark-teal: #16423c;
+  --medium-teal: #6a9c89;
+  --light-mint: #c4dad2;
+  --pale-mint: #e9efec;
+  
+  /* Legacy colors for compatibility */
   --pure-white: #FFFFFF;
   --soft-sand: #F6F1EB;
-  --blush-pink: #F7C9D4;
   --peach-cream: #FFEDE1;
+  --blush-pink: #F7C9D4;
   --baby-blue: #BEE3F8;
-  --grey-900: #3A3A3A;
+  --grey-50: #F9FAFB;
+  --grey-100: #F3F4F6;
+  --grey-200: #E5E7EB;
+  --grey-300: #D1D5DB;
+  --grey-400: #9CA3AF;
+  --grey-500: #6B7280;
   --grey-600: #6F6F6F;
-  --grey-200: #E4E4E4;
+  --grey-700: #374151;
+  --grey-800: #1F2937;
+  --grey-900: #3A3A3A;
   --mint: #C5F3DA;
+  
+  /* Dark background */
+  --bg-dark: #000000;
+  --bg-dark-subtle: #0a0a0a;
+  --beige: #F5E6D3;
 }
 
 * {
@@ -22,7 +41,7 @@ html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  background: var(--pure-white);
+  background: #000000;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;

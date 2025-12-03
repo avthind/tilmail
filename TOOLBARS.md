@@ -37,7 +37,7 @@ Contains:
 - Small pill on right edge
 - Tapping one expands a mini horizontal menu:
   ```
-  [ Stickers ] [ Text ] [ Draw ]
+       [ Stickers ] [ Text ] [ Draw ]
   ```
 - Tools adapt for touch:
   - Stickers panel slides from bottom

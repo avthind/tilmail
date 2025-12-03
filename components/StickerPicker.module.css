@@ -12,8 +12,8 @@
 
 .stickerButton {
   aspect-ratio: 1;
-  background: var(--pure-white);
-  border: 2px solid var(--grey-200);
+  background: rgba(196, 218, 210, 0.1);
+  border: 2px solid rgba(106, 156, 137, 0.4);
   border-radius: 12px;
   cursor: pointer;
   display: flex;
@@ -24,15 +24,31 @@
 }
 
 .stickerButton:hover {
-  border-color: var(--blush-pink);
+  border-color: var(--medium-teal);
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(247, 201, 212, 0.3);
+  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.3);
 }
 
 .stickerButton.selected {
-  border-color: var(--blush-pink);
-  background: var(--peach-cream);
-  box-shadow: 0 4px 12px rgba(247, 201, 212, 0.4);
+  border-color: var(--medium-teal);
+  background: rgba(106, 156, 137, 0.3);
+  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
+  position: relative;
+}
+
+.checkmark {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  background: var(--medium-teal);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pure-white);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .stickerImage {
@@ -44,7 +60,7 @@
 
 .hint {
   font-size: 11px;
-  color: var(--grey-600);
+  color: var(--light-mint);
   text-align: center;
   margin: 0;
   font-family: 'Nunito', sans-serif;
