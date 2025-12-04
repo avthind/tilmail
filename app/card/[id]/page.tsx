@@ -2,16 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Canvas } from '@react-three/fiber'
-import { Suspense } from 'react'
-import EnvelopeViewer from '@/components/EnvelopeViewer'
+import CardCanvas from '@/components/CardCanvas'
 import { loadCard } from '@/lib/firebase'
+import { useAppStore } from '@/store/appStore'
 import styles from './page.module.css'
 
 export default function CardViewerPage() {
   const params = useParams()
   const cardId = params.id as string
-  const [cardData, setCardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,7 +17,9 @@ export default function CardViewerPage() {
     if (cardId) {
       loadCard(cardId)
         .then((data) => {
-          setCardData(data)
+          if (data && data.decorations) {
+            useAppStore.setState({ decorations: data.decorations })
+          }
           setLoading(false)
         })
         .catch((err) => {
@@ -37,24 +37,17 @@ export default function CardViewerPage() {
     )
   }
 
-  if (error || !cardData) {
+  if (error) {
     return (
       <div className={styles.container}>
-        <div className={styles.error}>{error || 'Card not found'}</div>
+        <div className={styles.error}>{error}</div>
       </div>
     )
   }
 
   return (
     <div className={styles.container}>
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 50 }}
-        gl={{ antialias: true, alpha: true }}
-      >
-        <Suspense fallback={null}>
-          <EnvelopeViewer cardData={cardData} />
-        </Suspense>
-      </Canvas>
+      <CardCanvas />
     </div>
   )
 }

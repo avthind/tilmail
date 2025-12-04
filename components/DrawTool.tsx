@@ -54,7 +54,7 @@ export default function DrawTool() {
         ))}
       </div>
       <p className={styles.hint}>
-        Click and drag on the card to draw.
+        Click and drag to draw.
       </p>
     </div>
   )

@@ -138,7 +138,7 @@ export default function TextTool() {
         </label>
       </div>
       <p className={styles.hint}>
-        Click on the card to place text. Double-click to edit existing text. Drag to move.
+        Click to place, double-click to edit, drag to move.
       </p>
       <div className={styles.preview}>
         <span

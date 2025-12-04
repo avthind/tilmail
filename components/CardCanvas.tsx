@@ -33,6 +33,7 @@ export default function CardCanvas() {
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
   const [editingTextValue, setEditingTextValue] = useState('')
   const [isFlipping, setIsFlipping] = useState(false)
+  const [displayMode, setDisplayMode] = useState(mode) // Mode to display (may lag behind actual mode during flip)
   const lastTapRef = useRef<number>(0)
   const justFinishedDrawingRef = useRef(false) // Track if we just finished drawing to skip redraw
   const previousModeRef = useRef(mode)
@@ -40,14 +41,25 @@ export default function CardCanvas() {
   // Trigger flip animation when mode changes
   useEffect(() => {
     if (previousModeRef.current !== mode) {
+      // Start flip - keep showing old side, hide decorations
       setIsFlipping(true)
+      // Don't update displayMode yet - keep showing old side
       const timer = setTimeout(() => {
+        // After flip completes, switch to new side and show decorations
         setIsFlipping(false)
+        setDisplayMode(mode)
       }, 600) // Match animation duration
       previousModeRef.current = mode
       return () => clearTimeout(timer)
     }
   }, [mode])
+
+  // Update displayMode when not flipping (sync with actual mode)
+  useEffect(() => {
+    if (!isFlipping) {
+      setDisplayMode(mode)
+    }
+  }, [mode, isFlipping])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -92,10 +104,11 @@ export default function CardCanvas() {
       ctx.fillRect(0, 0, canvas.width, canvas.height)
     }
 
-    // Check if we actually need to redraw
-    const face = mode === 'front' ? 'front' : 'back'
+    // Use displayMode (which may lag during flip) to determine which face to show
+    const face = displayMode === 'front' ? 'front' : 'back'
     const faceDecorations = decorations[face]
-    const prevFaceDecorations = prevDecorationsRef.current[face]
+    const prevFace = prevModeRef.current === 'front' ? 'front' : 'back'
+    const prevFaceDecorations = prevDecorationsRef.current[prevFace]
     
     // If we just finished drawing, the decoration is already on canvas, skip redraw
     if (justFinishedDrawingRef.current) {
@@ -108,9 +121,10 @@ export default function CardCanvas() {
     }
 
     // Check if decorations actually changed (more efficient comparison)
+    const modeChanged = displayMode !== prevModeRef.current
     const decorationsChanged = 
+      modeChanged ||
       faceDecorations.length !== prevFaceDecorations.length ||
-      mode !== prevModeRef.current ||
       faceDecorations.some((dec, i) => {
         const prevDec = prevFaceDecorations[i]
         return !prevDec || dec.id !== prevDec.id || dec.x !== prevDec.x || dec.y !== prevDec.y
@@ -149,6 +163,12 @@ export default function CardCanvas() {
     // Clear canvas with white background
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+    // If flipping, only show white background (hide all decorations)
+    if (isFlipping) {
+      // Don't update refs during flip - keep previous state
+      return
+    }
 
     // Draw all decorations
     const drawDecorations = async () => {
@@ -321,9 +341,9 @@ export default function CardCanvas() {
     
     // Update refs after redraw
     prevDecorationsRef.current = decorations
-    prevModeRef.current = mode
+    prevModeRef.current = displayMode
     prevSelectedDecorationRef.current = selectedDecoration
-  }, [decorations, mode, selectedDecoration, drawSettings])
+  }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping])
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current

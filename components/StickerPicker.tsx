@@ -91,11 +91,11 @@ export default function StickerPicker() {
       </div>
       {selectedSticker ? (
         <p className={styles.hint}>
-          ✓ Sticker selected. Click on the card to place it. Press ESC to cancel.
+          Click on card to place. Press ESC to cancel.
         </p>
       ) : (
         <p className={styles.hint}>
-          Click a sticker to select it, then click on the card to place.
+          Select a sticker and click on card to place.
         </p>
       )}
     </div>
