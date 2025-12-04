@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAppStore } from '@/store/appStore'
 import { saveCard } from '@/lib/firebase'
 import styles from './SendModal.module.css'
@@ -15,20 +15,29 @@ export default function SendModal({ onClose }: SendModalProps) {
   const [shareLink, setShareLink] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const hasGeneratedRef = useRef(false)
 
-  // Auto-generate link when modal opens
+  // Auto-generate link when modal opens (only once)
   useEffect(() => {
+    if (hasGeneratedRef.current) return
+    
     const generateLink = async () => {
       setLoading(true)
       setError(null)
+      setShareLink(null)
+      hasGeneratedRef.current = true
 
       try {
+        console.log('Saving card with decorations:', decorations)
         const cardId = await saveCard(decorations)
+        console.log('Card saved with ID:', cardId)
         const shareUrl = `${window.location.origin}/card/${cardId}`
         setShareLink(shareUrl)
+        console.log('Share URL generated:', shareUrl)
       } catch (err) {
         console.error('Error saving card:', err)
-        setError('Failed to generate link')
+        setError(`Failed to generate link: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        hasGeneratedRef.current = false // Allow retry on error
       } finally {
         setLoading(false)
       }
