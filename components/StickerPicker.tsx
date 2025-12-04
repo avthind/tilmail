@@ -63,6 +63,15 @@ export default function StickerPicker() {
 
   return (
     <div className={styles.stickerPicker}>
+      {selectedSticker ? (
+        <p className={styles.hint}>
+          Click on card to place. Press ESC to cancel.
+        </p>
+      ) : (
+        <p className={styles.hint}>
+          Select a sticker and click on card to place.
+        </p>
+      )}
       <div className={styles.stickerGrid}>
         {STICKERS.map((sticker) => (
           <button
@@ -89,15 +98,6 @@ export default function StickerPicker() {
           </button>
         ))}
       </div>
-      {selectedSticker ? (
-        <p className={styles.hint}>
-          Click on card to place. Press ESC to cancel.
-        </p>
-      ) : (
-        <p className={styles.hint}>
-          Select a sticker and click on card to place.
-        </p>
-      )}
     </div>
   )
 }

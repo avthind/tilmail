@@ -1,38 +1,40 @@
 .stickerPicker {
   margin-top: 0;
-  padding: 0;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stickerGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 4px;
+  justify-content: center;
 }
 
 .stickerButton {
   aspect-ratio: 1;
   background: rgba(196, 218, 210, 0.1);
-  border: 2px solid rgba(106, 156, 137, 0.4);
-  border-radius: 12px;
+  border: 1px solid rgba(106, 156, 137, 0.4);
+  border-radius: 2px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .stickerButton:hover {
+  background: rgba(106, 156, 137, 0.3);
   border-color: var(--medium-teal);
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.3);
 }
 
 .stickerButton.selected {
+  background: var(--medium-teal);
   border-color: var(--medium-teal);
-  background: rgba(106, 156, 137, 0.3);
-  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
+  box-shadow: 0 2px 6px rgba(106, 156, 137, 0.4);
   position: relative;
 }
 
@@ -40,15 +42,15 @@
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 20px;
-  height: 20px;
-  background: var(--medium-teal);
+  width: 16px;
+  height: 16px;
+  background: var(--pure-white);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--pure-white);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: var(--medium-teal);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .stickerImage {
@@ -59,9 +61,9 @@
 }
 
 .hint {
-  font-size: 11px;
+  font-size: 9px;
   color: var(--light-mint);
   text-align: center;
-  margin: 0;
+  margin: 0 0 12px 0;
   font-family: 'Nunito', sans-serif;
 }
