@@ -54,17 +54,29 @@ export default function Toolbar() {
         return
       }
       setTool(null)
+      // Clear sticker selection when closing tool
+      if (currentTool === 'sticker') {
+        setSelectedSticker(null)
+      }
     }
 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [currentTool, setTool])
+  }, [currentTool, setTool, setSelectedSticker])
 
   const handleToolClick = (tool: 'sticker' | 'text' | 'draw' | 'grab') => {
     if (currentTool === tool) {
       setTool(null)
+      // Clear sticker selection when closing sticker tool
+      if (tool === 'sticker') {
+        setSelectedSticker(null)
+      }
     } else {
       setTool(tool)
+      // Clear sticker selection when switching to a different tool
+      if (currentTool === 'sticker') {
+        setSelectedSticker(null)
+      }
     }
   }
 

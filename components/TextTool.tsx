@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/store/appStore'
 import styles from './TextTool.module.css'
 
@@ -32,12 +32,55 @@ const FONT_WEIGHTS = [
 ]
 
 export default function TextTool() {
-  const { textSettings, setTextSettings } = useAppStore()
-  const [fontFamily, setFontFamily] = useState(textSettings.fontFamily)
-  const [fontSize, setFontSize] = useState(textSettings.fontSize || 24)
-  const [color, setColor] = useState(textSettings.color || COLORS[0].value)
-  const [fontWeight, setFontWeight] = useState(textSettings.fontWeight || 'normal')
-  const [textDecoration, setTextDecoration] = useState(textSettings.textDecoration || 'none')
+  const { 
+    textSettings, 
+    setTextSettings, 
+    selectedDecoration, 
+    decorations, 
+    updateDecoration 
+  } = useAppStore()
+  
+  // Get selected text decoration if it exists
+  const selectedText = selectedDecoration 
+    ? decorations[selectedDecoration.face]?.find(
+        d => d.id === selectedDecoration.id && d.type === 'text'
+      )
+    : null
+
+  // Sync controls with selected text or default settings
+  const [fontFamily, setFontFamily] = useState(
+    selectedText?.data.fontFamily || textSettings.fontFamily
+  )
+  const [fontSize, setFontSize] = useState(
+    selectedText?.data.fontSize || textSettings.fontSize || 24
+  )
+  const [color, setColor] = useState(
+    selectedText?.data.color || textSettings.color || COLORS[0].value
+  )
+  const [fontWeight, setFontWeight] = useState(
+    selectedText?.data.fontWeight || textSettings.fontWeight || 'normal'
+  )
+  const [textDecoration, setTextDecoration] = useState(
+    selectedText?.data.textDecoration || textSettings.textDecoration || 'none'
+  )
+
+  // Sync controls when selected text changes
+  useEffect(() => {
+    if (selectedText) {
+      setFontFamily(selectedText.data.fontFamily || textSettings.fontFamily)
+      setFontSize(selectedText.data.fontSize || textSettings.fontSize || 24)
+      setColor(selectedText.data.color || textSettings.color || COLORS[0].value)
+      setFontWeight(selectedText.data.fontWeight || textSettings.fontWeight || 'normal')
+      setTextDecoration(selectedText.data.textDecoration || textSettings.textDecoration || 'none')
+    } else {
+      // Reset to default settings when no text is selected
+      setFontFamily(textSettings.fontFamily)
+      setFontSize(textSettings.fontSize || 24)
+      setColor(textSettings.color || COLORS[0].value)
+      setFontWeight(textSettings.fontWeight || 'normal')
+      setTextDecoration(textSettings.textDecoration || 'none')
+    }
+  }, [selectedText, textSettings])
 
   const updateSettings = (
     newFontFamily?: string,
@@ -58,11 +101,21 @@ export default function TextTool() {
     setColor(updated.color)
     setFontWeight(updated.fontWeight)
     setTextDecoration(updated.textDecoration)
-    setTextSettings({
-      ...updated,
-      fontWeight: updated.fontWeight,
-      textDecoration: updated.textDecoration,
-    })
+    
+    // If text is selected, update it directly (industry standard)
+    if (selectedText && selectedDecoration) {
+      updateDecoration(selectedDecoration.face, selectedDecoration.id, {
+        ...selectedText.data,
+        ...updated,
+      })
+    } else {
+      // Otherwise update default settings for new text
+      setTextSettings({
+        ...updated,
+        fontWeight: updated.fontWeight,
+        textDecoration: updated.textDecoration,
+      })
+    }
   }
 
   const handleFontWeight = (weight: string) => {
@@ -76,7 +129,7 @@ export default function TextTool() {
   return (
     <div className={styles.textTool}>
       <p className={styles.hint}>
-        Click to place and double-click to edit.
+        {selectedText ? 'Double-click to edit text. Adjust formatting below.' : 'Click to place text, double-click to edit.'}
       </p>
       <div className={styles.controls}>
         <div className={styles.colorPicker}>

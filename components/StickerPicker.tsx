@@ -140,7 +140,7 @@ export const getStickerData = (id: string) => {
   return {
     url: getStickerSVG(id, sticker.color),
     color: sticker.color,
-    scale: 0.15,
+    scale: 0.5,
   }
 }
 
@@ -148,22 +148,21 @@ export default function StickerPicker() {
   const { setSelectedSticker, selectedSticker, currentTool } = useAppStore()
 
   const handleStickerClick = (stickerId: string) => {
-    // Industry standard: clicking a sticker selects it (doesn't toggle)
-    // User can place multiple instances by clicking on canvas
-    setSelectedSticker(stickerId)
+    // Industry standard: clicking the same sticker again deselects it
+    // Clicking a different sticker selects it
+    // This allows easy deselection without needing ESC
+    if (selectedSticker === stickerId) {
+      setSelectedSticker(null)
+    } else {
+      setSelectedSticker(stickerId)
+    }
   }
 
   return (
     <div className={styles.stickerPicker}>
-      {selectedSticker ? (
-        <p className={styles.hint}>
-          Click on card to place. Press ESC to cancel.
-        </p>
-      ) : (
-        <p className={styles.hint}>
-          Select a sticker and click on card to place.
-        </p>
-      )}
+      <p className={styles.hint}>
+        Click on card to place sticker.
+      </p>
       <div className={styles.stickerGrid}>
         {STICKERS.map((sticker) => (
           <button

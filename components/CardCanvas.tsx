@@ -132,9 +132,10 @@ export default function CardCanvas() {
       })
 
     // Check if only selection changed (simple reference/ID comparison)
-    // Only redraw selection changes if in grab mode (selection indicators only shown in grab mode)
+    // Redraw selection changes if in grab mode or text tool with text selected
     const selectionChanged = 
-      currentTool === 'grab' &&
+      (currentTool === 'grab' || (currentTool === 'text' && selectedDecoration && 
+        faceDecorations.find(d => d.id === selectedDecoration.id && d.type === 'text'))) &&
       ((selectedDecoration?.face !== prevSelectedDecorationRef.current?.face) ||
        (selectedDecoration?.id !== prevSelectedDecorationRef.current?.id))
 
@@ -142,14 +143,26 @@ export default function CardCanvas() {
     if (!decorationsChanged && selectionChanged) {
       // Check if the selected decoration type needs visual selection indicators
       // In grab mode, all decoration types show selection indicators
+      // In text tool mode, only text shows selection indicators
       const needsRedraw = selectedDecoration && (() => {
         const dec = faceDecorations.find(d => d.id === selectedDecoration.id)
-        // All decoration types show selection indicators in grab mode
-        return dec && (dec.type === 'sticker' || dec.type === 'text' || dec.type === 'drawing')
+        if (currentTool === 'grab') {
+          return dec && (dec.type === 'sticker' || dec.type === 'text' || dec.type === 'drawing')
+        } else if (currentTool === 'text') {
+          return dec && dec.type === 'text'
+        }
+        return false
       })() || prevSelectedDecorationRef.current && (() => {
         const prevDec = prevFaceDecorations.find(d => d.id === prevSelectedDecorationRef.current!.id)
         // Need to redraw to remove previous selection indicator
-        return prevDec && (prevDec.type === 'sticker' || prevDec.type === 'text' || prevDec.type === 'drawing')
+        if (prevDec) {
+          if (currentTool === 'grab') {
+            return prevDec.type === 'sticker' || prevDec.type === 'text' || prevDec.type === 'drawing'
+          } else if (currentTool === 'text') {
+            return prevDec.type === 'text'
+          }
+        }
+        return false
       })()
 
       if (!needsRedraw) {
@@ -180,8 +193,10 @@ export default function CardCanvas() {
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
       for (const decoration of faceDecorations) {
-        // Only show selection indicators in grab mode
-        const isSelected = currentTool === 'grab' && selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
+        // Show selection indicators in grab mode or when text tool is active and text is selected
+        const isSelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
+        const showFullSelection = currentTool === 'grab' && isSelected
+        const showTextSelection = currentTool === 'text' && isSelected && decoration.type === 'text'
 
         if (decoration.type === 'sticker') {
           const scale = decoration.data.scale || 0.15
@@ -189,37 +204,18 @@ export default function CardCanvas() {
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
 
-          // Draw selection border
-          if (isSelected) {
+          // Draw selection border (only in grab mode for stickers)
+          if (showFullSelection) {
             ctx.strokeStyle = '#6a9c89'
-            ctx.lineWidth = 3
-            ctx.setLineDash([])
+            ctx.lineWidth = 2
+            ctx.setLineDash([5, 5])
             ctx.strokeRect(
               x - stickerSize / 2 - 8,
               y - stickerSize / 2 - 8,
               stickerSize + 16,
               stickerSize + 16
             )
-
-            // Draw trash icon
-            const trashSize = 24
-            const trashX = x + stickerSize / 2 + 4
-            const trashY = y - stickerSize / 2 - 4
-
-            ctx.fillStyle = '#ff4444'
-            ctx.beginPath()
-            ctx.arc(trashX, trashY, trashSize / 2, 0, Math.PI * 2)
-            ctx.fill()
-
-            ctx.strokeStyle = '#ffffff'
-            ctx.lineWidth = 3
-            ctx.lineCap = 'round'
-            ctx.beginPath()
-            ctx.moveTo(trashX - 6, trashY - 6)
-            ctx.lineTo(trashX + 6, trashY + 6)
-            ctx.moveTo(trashX + 6, trashY - 6)
-            ctx.lineTo(trashX - 6, trashY + 6)
-            ctx.stroke()
+            ctx.setLineDash([])
           }
 
           // Draw sticker
@@ -267,7 +263,7 @@ export default function CardCanvas() {
           const y = (decoration.y + CARD_HEIGHT / 2)
 
           // Draw selection border
-          if (isSelected) {
+          if (showTextSelection || showFullSelection) {
             const textWidth = ctx.measureText(decoration.data.text || '').width
             const textHeight = fontSize
             
@@ -281,26 +277,6 @@ export default function CardCanvas() {
               textHeight + 16
             )
             ctx.setLineDash([])
-
-            // Draw trash icon
-            const trashSize = 20
-            const trashX = x + textWidth / 2 + 4
-            const trashY = y - textHeight / 2 - 4
-
-            ctx.fillStyle = '#ff4444'
-            ctx.beginPath()
-            ctx.arc(trashX, trashY, trashSize / 2, 0, Math.PI * 2)
-            ctx.fill()
-
-            ctx.strokeStyle = '#ffffff'
-            ctx.lineWidth = 2
-            ctx.lineCap = 'round'
-            ctx.beginPath()
-            ctx.moveTo(trashX - 5, trashY - 5)
-            ctx.lineTo(trashX + 5, trashY + 5)
-            ctx.moveTo(trashX + 5, trashY - 5)
-            ctx.lineTo(trashX - 5, trashY + 5)
-            ctx.stroke()
           }
 
           if (decoration.data.textDecoration === 'underline') {
@@ -351,8 +327,8 @@ export default function CardCanvas() {
               }
             })
             
-            // Draw selection border and trash icon if selected
-            if (isSelected && minX !== Infinity) {
+            // Draw selection border and trash icon if selected (only in grab mode)
+            if (showFullSelection && minX !== Infinity) {
               const padding = 8
               ctx.strokeStyle = '#6a9c89'
               ctx.lineWidth = 2
@@ -364,26 +340,6 @@ export default function CardCanvas() {
                 maxY - minY + padding * 2
               )
               ctx.setLineDash([])
-              
-              // Draw trash icon
-              const trashSize = 20
-              const trashX = maxX + padding + 4
-              const trashY = minY - padding - 4
-              
-              ctx.fillStyle = '#ff4444'
-              ctx.beginPath()
-              ctx.arc(trashX, trashY, trashSize / 2, 0, Math.PI * 2)
-              ctx.fill()
-              
-              ctx.strokeStyle = '#ffffff'
-              ctx.lineWidth = 2
-              ctx.lineCap = 'round'
-              ctx.beginPath()
-              ctx.moveTo(trashX - 5, trashY - 5)
-              ctx.lineTo(trashX + 5, trashY + 5)
-              ctx.moveTo(trashX + 5, trashY - 5)
-              ctx.lineTo(trashX - 5, trashY + 5)
-              ctx.stroke()
             }
           }
         }
@@ -500,82 +456,20 @@ export default function CardCanvas() {
 
     const decoration = findDecorationAtPoint(coords)
     
+    // Text tool: clicking on existing text selects it
+    if (decoration && decoration.type === 'text' && currentTool === 'text') {
+      const face = displayMode === 'front' ? 'front' : 'back'
+      setSelectedDecoration({ face, id: decoration.id })
+      // Start editing if double-clicked, otherwise just select
+      return
+    }
+    
     // Only allow decoration selection/interaction in grab mode
     if (decoration && currentTool === 'grab') {
       // Use displayMode to match the face being rendered
       const face = displayMode === 'front' ? 'front' : 'back'
       
-      // Calculate trash icon position for this decoration (whether selected or not)
-      let trashX: number = 0, trashY: number = 0
-      let trashCalculated = false
-      
-      if (decoration.type === 'drawing' && decoration.data.paths) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-        decoration.data.paths.forEach((path: number[][]) => {
-          path.forEach((point: number[]) => {
-            const x = (point[0] + CARD_WIDTH / 2)
-            const y = (point[1] + CARD_HEIGHT / 2)
-            minX = Math.min(minX, x)
-            minY = Math.min(minY, y)
-            maxX = Math.max(maxX, x)
-            maxY = Math.max(maxY, y)
-          })
-        })
-        trashX = maxX + 12
-        trashY = minY - 12
-        trashCalculated = true
-      } else if (decoration.type === 'sticker') {
-        const scale = decoration.data.scale || 0.15
-        const stickerSize = 64 * scale
-        const x = (decoration.x + CARD_WIDTH / 2)
-        const y = (decoration.y + CARD_HEIGHT / 2)
-        trashX = x + stickerSize / 2 + 4
-        trashY = y - stickerSize / 2 - 4
-        trashCalculated = true
-      } else if (decoration.type === 'text') {
-        const fontSize = decoration.data.fontSize || 24
-        const x = (decoration.x + CARD_WIDTH / 2)
-        const y = (decoration.y + CARD_HEIGHT / 2)
-        const canvas = canvasRef.current
-        if (canvas) {
-          const ctx = canvas.getContext('2d')
-          if (ctx) {
-            const fontFamily = decoration.data.fontFamily || 'Arial, sans-serif'
-            const fontWeight = decoration.data.fontWeight || 'normal'
-            ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontSize}px ${fontFamily}`
-            const textWidth = ctx.measureText(decoration.data.text || '').width
-            trashX = x + textWidth / 2 + 4
-            trashY = y - fontSize / 2 - 4
-            trashCalculated = true
-          }
-        }
-        if (!trashCalculated) {
-          const textWidth = decoration.data.text ? decoration.data.text.length * fontSize * 0.6 : 100
-          trashX = x + textWidth / 2 + 4
-          trashY = y - fontSize / 2 - 4
-          trashCalculated = true
-        }
-      }
-      
-      // Check if clicking on trash icon (only if decoration is selected and trash position calculated)
-      if (trashCalculated && selectedDecoration?.id === decoration.id && selectedDecoration?.face === face) {
-        const clickDistance = Math.sqrt(
-          Math.pow(coords.canvasX - trashX, 2) + Math.pow(coords.canvasY - trashY, 2)
-        )
-
-        if (clickDistance < 25) {
-          // Delete using the selected decoration's face and id (same as keyboard handler)
-          e.preventDefault()
-          e.stopPropagation()
-          removeDecoration(selectedDecoration.face, selectedDecoration.id)
-          setSelectedDecoration(null)
-          setIsDragging(false)
-          setDragStart(null)
-          return
-        }
-      }
-
-      // Not clicking on trash icon - select decoration and set up for dragging
+      // Select decoration and set up for dragging
       setSelectedDecoration({ face, id: decoration.id })
       setIsDragging(true)
       setDragStart({ x: coords.x, y: coords.y })
@@ -597,12 +491,12 @@ export default function CardCanvas() {
             x: coords.x,
             y: coords.y,
             data: stickerData,
-            scale: 0.15,
+            scale: 0.5,
             rotation: 0,
           }
           addDecoration(face, newDecoration)
-          // Auto-select newly placed sticker
-          setSelectedDecoration({ face, id: newDecoration.id })
+          // Keep sticker selected for placing more instances (industry standard)
+          // Don't auto-select decoration - user can use grab tool if they want to move it
         }
       } else if (currentTool === 'text') {
         const face = mode === 'front' ? 'front' : 'back'
@@ -621,7 +515,7 @@ export default function CardCanvas() {
           },
         }
         addDecoration(face, newDecoration)
-        // Auto-select and start editing
+        // Auto-select and start editing immediately
         setSelectedDecoration({ face, id: newDecoration.id })
         setEditingTextId(newDecoration.id)
         setEditingTextValue('Your text…')
@@ -670,85 +564,12 @@ export default function CardCanvas() {
     }
 
     // Drag decoration (only in grab mode)
-    // But first check if we clicked on trash icon - if so, don't drag
     if (isDragging && selectedDecoration && dragStart && currentTool === 'grab') {
       const face = selectedDecoration.face
       const decoration = decorations[face].find(d => d.id === selectedDecoration.id)
       if (decoration) {
-        // Check if initial click was on trash icon - if so, cancel drag
-        const initialClickDistance = dragStart ? Math.sqrt(
-          Math.pow(dragStart.x - (decoration.x + CARD_WIDTH / 2), 2) + 
-          Math.pow(dragStart.y - (decoration.y + CARD_HEIGHT / 2), 2)
-        ) : Infinity
-        
-        // If we haven't moved much, might be a trash click - check trash position
         const deltaX = coords.x - dragStart.x
         const deltaY = coords.y - dragStart.y
-        const moveDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-        
-        // If we've moved less than 5px, check if we're near trash icon
-        if (moveDistance < 5) {
-          let trashX = 0, trashY = 0
-          if (decoration.type === 'drawing' && decoration.data.paths) {
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-            decoration.data.paths.forEach((path: number[][]) => {
-              path.forEach((point: number[]) => {
-                const x = (point[0] + CARD_WIDTH / 2)
-                const y = (point[1] + CARD_HEIGHT / 2)
-                minX = Math.min(minX, x)
-                minY = Math.min(minY, y)
-                maxX = Math.max(maxX, x)
-                maxY = Math.max(maxY, y)
-              })
-            })
-            trashX = maxX + 12
-            trashY = minY - 12
-          } else if (decoration.type === 'sticker') {
-            const scale = decoration.data.scale || 0.15
-            const stickerSize = 64 * scale
-            const x = (decoration.x + CARD_WIDTH / 2)
-            const y = (decoration.y + CARD_HEIGHT / 2)
-            trashX = x + stickerSize / 2 + 4
-            trashY = y - stickerSize / 2 - 4
-          } else if (decoration.type === 'text') {
-            const fontSize = decoration.data.fontSize || 24
-            const x = (decoration.x + CARD_WIDTH / 2)
-            const y = (decoration.y + CARD_HEIGHT / 2)
-            const canvas = canvasRef.current
-            if (canvas) {
-              const ctx = canvas.getContext('2d')
-              if (ctx) {
-                const fontFamily = decoration.data.fontFamily || 'Arial, sans-serif'
-                const fontWeight = decoration.data.fontWeight || 'normal'
-                ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontSize}px ${fontFamily}`
-                const textWidth = ctx.measureText(decoration.data.text || '').width
-                trashX = x + textWidth / 2 + 4
-                trashY = y - fontSize / 2 - 4
-              }
-            }
-            if (trashX === 0 && trashY === 0) {
-              const textWidth = decoration.data.text ? decoration.data.text.length * fontSize * 0.6 : 100
-              trashX = x + textWidth / 2 + 4
-              trashY = y - fontSize / 2 - 4
-            }
-          }
-          
-          const trashClickDistance = Math.sqrt(
-            Math.pow(coords.canvasX - trashX, 2) + Math.pow(coords.canvasY - trashY, 2)
-          )
-          
-          if (trashClickDistance < 25) {
-            // Clicked on trash icon - delete and cancel drag
-            removeDecoration(selectedDecoration.face, selectedDecoration.id)
-            setSelectedDecoration(null)
-            setIsDragging(false)
-            setDragStart(null)
-            return
-          }
-        }
-        
-        const deltaXFinal = coords.x - dragStart.x
-        const deltaYFinal = coords.y - dragStart.y
         
         if (decoration.type === 'drawing' && decoration.data.paths) {
           // For drawings, update all path points
@@ -771,81 +592,6 @@ export default function CardCanvas() {
   }
 
   const handleMouseUp = (e?: React.MouseEvent<HTMLCanvasElement>) => {
-    // Check if we clicked on trash icon (if mouse didn't move much)
-    if (isDragging && selectedDecoration && dragStart && currentTool === 'grab' && e) {
-      const coords = getCanvasCoordinates(e)
-      if (coords) {
-        const face = selectedDecoration.face
-        const decoration = decorations[face].find(d => d.id === selectedDecoration.id)
-        if (decoration) {
-          const deltaX = coords.x - dragStart.x
-          const deltaY = coords.y - dragStart.y
-          const moveDistance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-          
-          // If mouse didn't move much (less than 10px), check if we clicked on trash icon
-          if (moveDistance < 10) {
-            let trashX = 0, trashY = 0
-            if (decoration.type === 'drawing' && decoration.data.paths) {
-              let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-              decoration.data.paths.forEach((path: number[][]) => {
-                path.forEach((point: number[]) => {
-                  const x = (point[0] + CARD_WIDTH / 2)
-                  const y = (point[1] + CARD_HEIGHT / 2)
-                  minX = Math.min(minX, x)
-                  minY = Math.min(minY, y)
-                  maxX = Math.max(maxX, x)
-                  maxY = Math.max(maxY, y)
-                })
-              })
-              trashX = maxX + 12
-              trashY = minY - 12
-            } else if (decoration.type === 'sticker') {
-              const scale = decoration.data.scale || 0.15
-              const stickerSize = 64 * scale
-              const x = (decoration.x + CARD_WIDTH / 2)
-              const y = (decoration.y + CARD_HEIGHT / 2)
-              trashX = x + stickerSize / 2 + 4
-              trashY = y - stickerSize / 2 - 4
-            } else if (decoration.type === 'text') {
-              const fontSize = decoration.data.fontSize || 24
-              const x = (decoration.x + CARD_WIDTH / 2)
-              const y = (decoration.y + CARD_HEIGHT / 2)
-              const canvas = canvasRef.current
-              if (canvas) {
-                const ctx = canvas.getContext('2d')
-                if (ctx) {
-                  const fontFamily = decoration.data.fontFamily || 'Arial, sans-serif'
-                  const fontWeight = decoration.data.fontWeight || 'normal'
-                  ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontSize}px ${fontFamily}`
-                  const textWidth = ctx.measureText(decoration.data.text || '').width
-                  trashX = x + textWidth / 2 + 4
-                  trashY = y - fontSize / 2 - 4
-                }
-              }
-              if (trashX === 0 && trashY === 0) {
-                const textWidth = decoration.data.text ? decoration.data.text.length * fontSize * 0.6 : 100
-                trashX = x + textWidth / 2 + 4
-                trashY = y - fontSize / 2 - 4
-              }
-            }
-            
-            const trashClickDistance = Math.sqrt(
-              Math.pow(coords.canvasX - trashX, 2) + Math.pow(coords.canvasY - trashY, 2)
-            )
-            
-            if (trashClickDistance < 25) {
-              // Clicked on trash icon - delete
-              removeDecoration(selectedDecoration.face, selectedDecoration.id)
-              setSelectedDecoration(null)
-              setIsDragging(false)
-              setDragStart(null)
-              setHoveredDecoration(null)
-              return
-            }
-          }
-        }
-      }
-    }
     
     if (isDrawing && currentPath.length > 0 && currentTool === 'draw') {
       const face = mode === 'front' ? 'front' : 'back'
@@ -897,12 +643,13 @@ export default function CardCanvas() {
 
     const decoration = findDecorationAtPoint(coords)
     if (decoration && decoration.type === 'text') {
-      const face = mode === 'front' ? 'front' : 'back'
+      const face = displayMode === 'front' ? 'front' : 'back'
       setSelectedDecoration({ face, id: decoration.id })
       setEditingTextId(decoration.id)
       setEditingTextValue(decoration.data.text || '')
     }
   }
+
 
   // Text editing input (positioned absolutely)
   const selectedTextDecoration = selectedDecoration && editingTextId
