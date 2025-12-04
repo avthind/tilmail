@@ -21,7 +21,7 @@ interface AppState {
   mode: DecorationMode
   decorations: FaceDecorations
   showSendModal: boolean
-  currentTool: 'sticker' | 'text' | 'draw' | null
+  currentTool: 'sticker' | 'text' | 'draw' | 'grab' | null
   selectedSticker: string | null
   selectedDecoration: { face: 'front' | 'back', id: string } | null
   drawSettings: {
@@ -36,7 +36,7 @@ interface AppState {
     textDecoration?: string
   }
   setMode: (mode: DecorationMode) => void
-  setTool: (tool: 'sticker' | 'text' | 'draw' | null) => void
+  setTool: (tool: 'sticker' | 'text' | 'draw' | 'grab' | null) => void
   setSelectedSticker: (sticker: string | null) => void
   setSelectedDecoration: (decoration: { face: 'front' | 'back', id: string } | null) => void
   setDrawSettings: (settings: { color: string; lineWidth: number }) => void

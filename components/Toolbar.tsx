@@ -16,7 +16,19 @@ export default function Toolbar() {
     setShowSendModal,
     setSelectedSticker,
     setSelectedDecoration,
+    decorations,
+    removeDecoration,
   } = useAppStore()
+
+  const handleUndo = () => {
+    const face = mode === 'front' ? 'front' : 'back'
+    const faceDecorations = decorations[face]
+    if (faceDecorations.length > 0) {
+      // Remove the last decoration (most recent)
+      const lastDecoration = faceDecorations[faceDecorations.length - 1]
+      removeDecoration(face, lastDecoration.id)
+    }
+  }
 
   // ESC key to exit active modes and deselect stickers/decorations
   useEffect(() => {
@@ -48,7 +60,7 @@ export default function Toolbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [currentTool, setTool])
 
-  const handleToolClick = (tool: 'sticker' | 'text' | 'draw') => {
+  const handleToolClick = (tool: 'sticker' | 'text' | 'draw' | 'grab') => {
     if (currentTool === tool) {
       setTool(null)
     } else {
@@ -97,8 +109,35 @@ export default function Toolbar() {
               </svg>
             </button>
           </div>
+          
+          <div className={styles.actionButtons}>
+            <button
+              className={styles.actionButton}
+              onClick={handleUndo}
+              aria-label="Undo last action"
+              title="Undo last action"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7v6h6"></path>
+                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+              </svg>
+            </button>
+            <button
+              className={`${styles.actionButton} ${currentTool === 'grab' ? styles.active : ''}`}
+              onClick={() => handleToolClick('grab')}
+              aria-label="Grab and move"
+              title="Grab and move"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 11.5V9a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2.5"></path>
+                <path d="M14 10V8a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
+                <path d="M10 9.5V7a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2.5"></path>
+                <path d="M6 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2.5"></path>
+              </svg>
+            </button>
+          </div>
 
-          {currentTool && (
+          {currentTool && currentTool !== 'grab' && (
             <div 
               className={styles.toolDrawer}
               style={{

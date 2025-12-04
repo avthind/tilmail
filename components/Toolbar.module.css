@@ -21,7 +21,7 @@
 .toolbarContent {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
   align-items: center;
   width: 100%;
 }
@@ -32,6 +32,61 @@
   gap: 8px;
   align-items: center;
   width: 100%;
+}
+
+.actionButtons {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.actionButton {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(196, 218, 210, 0.2);
+  border: 1px solid rgba(106, 156, 137, 0.4);
+  border-radius: 2px;
+  cursor: pointer;
+  color: var(--pale-mint);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+}
+
+.actionButton:hover {
+  background: rgba(106, 156, 137, 0.3);
+  border-color: var(--medium-teal);
+}
+
+.actionButton:active {
+  transform: scale(0.95);
+}
+
+.actionButton.active {
+  background: var(--medium-teal);
+  border-color: var(--medium-teal);
+  color: var(--pure-white);
+  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
+}
+
+.actionButton svg {
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  transition: transform 0.2s ease;
+  display: block;
+  margin: 0;
+  padding: 0;
 }
 
 .toolButton {
@@ -208,6 +263,30 @@
   height: 2px;
   background: var(--light-mint);
   border-radius: 2px;
+}
+
+.undoButton {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(196, 218, 210, 0.2);
+  border: 1px solid rgba(106, 156, 137, 0.4);
+  border-radius: 2px;
+  cursor: pointer;
+  color: var(--pale-mint);
+  transition: all 0.2s ease;
+}
+
+.undoButton:hover {
+  background: rgba(106, 156, 137, 0.3);
+  border-color: var(--medium-teal);
+}
+
+.undoButton:active {
+  transform: scale(0.95);
 }
 
 .sendButton {
