@@ -60,6 +60,9 @@ export default function TextTool() {
   const [fontWeight, setFontWeight] = useState(
     selectedText?.data.fontWeight || textSettings.fontWeight || 'normal'
   )
+  const [fontStyle, setFontStyle] = useState(
+    selectedText?.data.fontStyle || 'normal'
+  )
   const [textDecoration, setTextDecoration] = useState(
     selectedText?.data.textDecoration || textSettings.textDecoration || 'none'
   )
@@ -71,6 +74,7 @@ export default function TextTool() {
       setFontSize(selectedText.data.fontSize || textSettings.fontSize || 24)
       setColor(selectedText.data.color || textSettings.color || COLORS[0].value)
       setFontWeight(selectedText.data.fontWeight || textSettings.fontWeight || 'normal')
+      setFontStyle(selectedText.data.fontStyle || 'normal')
       setTextDecoration(selectedText.data.textDecoration || textSettings.textDecoration || 'none')
     } else {
       // Reset to default settings when no text is selected
@@ -78,6 +82,7 @@ export default function TextTool() {
       setFontSize(textSettings.fontSize || 24)
       setColor(textSettings.color || COLORS[0].value)
       setFontWeight(textSettings.fontWeight || 'normal')
+      setFontStyle('normal')
       setTextDecoration(textSettings.textDecoration || 'none')
     }
   }, [selectedText, textSettings])
@@ -87,6 +92,7 @@ export default function TextTool() {
     newFontSize?: number,
     newColor?: string,
     newFontWeight?: string,
+    newFontStyle?: string,
     newTextDecoration?: string
   ) => {
     const updated = {
@@ -94,12 +100,14 @@ export default function TextTool() {
       fontSize: newFontSize ?? fontSize,
       color: newColor ?? color,
       fontWeight: newFontWeight ?? fontWeight,
+      fontStyle: newFontStyle ?? fontStyle,
       textDecoration: newTextDecoration ?? textDecoration,
     }
     setFontFamily(updated.fontFamily)
     setFontSize(updated.fontSize)
     setColor(updated.color)
     setFontWeight(updated.fontWeight)
+    setFontStyle(updated.fontStyle)
     setTextDecoration(updated.textDecoration)
     
     // If text is selected, update it directly (industry standard)
@@ -118,11 +126,19 @@ export default function TextTool() {
     }
   }
 
-  const handleFontWeight = (weight: string) => {
-    if (weight === 'underline') {
-      updateSettings(undefined, undefined, undefined, 'normal', 'underline')
-    } else {
-      updateSettings(undefined, undefined, undefined, weight, 'none')
+  const handleStyleToggle = (style: string) => {
+    if (style === 'bold') {
+      // Toggle bold: if currently bold, set to normal; otherwise set to bold
+      const newWeight = fontWeight === 'bold' ? 'normal' : 'bold'
+      updateSettings(undefined, undefined, undefined, newWeight)
+    } else if (style === 'italic') {
+      // Toggle italic: if currently italic, set to normal; otherwise set to italic
+      const newStyle = fontStyle === 'italic' ? 'normal' : 'italic'
+      updateSettings(undefined, undefined, undefined, undefined, newStyle)
+    } else if (style === 'underline') {
+      // Toggle underline: if currently underlined, set to none; otherwise set to underline
+      const newDecoration = textDecoration === 'underline' ? 'none' : 'underline'
+      updateSettings(undefined, undefined, undefined, undefined, undefined, newDecoration)
     }
   }
 
@@ -180,16 +196,17 @@ export default function TextTool() {
               </svg>
             </button>
           ))}
-          {FONT_WEIGHTS.filter(weight => weight.value !== 'normal').map((weight) => (
+          {FONT_WEIGHTS.filter(weight => weight.value !== 'normal').map((weight) => {
+            const isActive = 
+              (weight.value === 'bold' && fontWeight === 'bold') ||
+              (weight.value === 'italic' && fontStyle === 'italic') ||
+              (weight.value === 'underline' && textDecoration === 'underline')
+            
+            return (
             <button
               key={weight.value}
-              className={`${styles.weightButton} ${
-                (weight.value === 'underline' && textDecoration === 'underline') ||
-                (weight.value !== 'underline' && fontWeight === weight.value)
-                  ? styles.active
-                  : ''
-              }`}
-              onClick={() => handleFontWeight(weight.value)}
+              className={`${styles.weightButton} ${isActive ? styles.active : ''}`}
+              onClick={() => handleStyleToggle(weight.value)}
               aria-label={weight.name}
               title={weight.name}
             >
@@ -211,7 +228,8 @@ export default function TextTool() {
                 </svg>
               )}
             </button>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

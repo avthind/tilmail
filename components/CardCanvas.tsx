@@ -112,12 +112,6 @@ export default function CardCanvas() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete selected decoration
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDecoration) {
-        e.preventDefault()
-        removeDecoration(selectedDecoration.face, selectedDecoration.id)
-        setSelectedDecoration(null)
-      }
       // ESC to deselect
       if (e.key === 'Escape') {
         setSelectedDecoration(null)
@@ -127,7 +121,7 @@ export default function CardCanvas() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedDecoration, removeDecoration, setSelectedDecoration])
+  }, [setSelectedDecoration])
 
   // Track previous state to avoid unnecessary redraws
   const prevDecorationsRef = useRef(decorations)
@@ -317,7 +311,7 @@ export default function CardCanvas() {
           const fontSize = decoration.data.fontSize || 24
           const fontFamily = decoration.data.fontFamily || 'Arial, sans-serif'
           const fontWeight = decoration.data.fontWeight || 'normal'
-          const fontStyle = fontWeight === 'italic' ? 'italic' : 'normal'
+          const fontStyle = decoration.data.fontStyle || 'normal'
           
           ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontStyle} ${fontSize}px ${fontFamily}`
           ctx.fillStyle = decoration.data.color || '#000000'
@@ -327,6 +321,10 @@ export default function CardCanvas() {
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
 
+          // Measure text width for proper underline and border positioning
+            const textWidth = ctx.measureText(decoration.data.text || '').width
+            const textHeight = fontSize
+            
           // Draw selection border
           // Only show borders when the appropriate tool is explicitly active
           // Text tool: full line border (solid) for selection or editing
@@ -337,24 +335,18 @@ export default function CardCanvas() {
             const isTextSelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id && currentTool === 'text'
             
             if (isTextEditing || isTextSelected) {
-              const textWidth = ctx.measureText(decoration.data.text || '').width
-              const textHeight = fontSize
-              
-              ctx.strokeStyle = '#6a9c89'
-              ctx.lineWidth = 2
+            ctx.strokeStyle = '#6a9c89'
+            ctx.lineWidth = 2
               ctx.setLineDash([]) // Solid line
-              ctx.strokeRect(
-                x - textWidth / 2 - 8,
-                y - textHeight / 2 - 8,
-                textWidth + 16,
-                textHeight + 16
-              )
+            ctx.strokeRect(
+              x - textWidth / 2 - 8,
+              y - textHeight / 2 - 8,
+              textWidth + 16,
+              textHeight + 16
+            )
             }
           } else if (currentTool === 'grab' && showFullSelection) {
             // Grab tool: dotted border for selection
-            const textWidth = ctx.measureText(decoration.data.text || '').width
-            const textHeight = fontSize
-            
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
             ctx.setLineDash([5, 5]) // Dotted line
@@ -367,16 +359,19 @@ export default function CardCanvas() {
             ctx.setLineDash([])
           }
 
+          // Draw text first
+          ctx.fillText(decoration.data.text || '', x, y)
+          
+          // Draw underline after text, using actual text width
           if (decoration.data.textDecoration === 'underline') {
             ctx.strokeStyle = decoration.data.color || '#000000'
-            ctx.lineWidth = 1
+            ctx.lineWidth = Math.max(1, fontSize / 20) // Scale underline thickness with font size
             ctx.beginPath()
-            ctx.moveTo(x - 50, y + fontSize / 2)
-            ctx.lineTo(x + 50, y + fontSize / 2)
+            const underlineY = y + fontSize / 2 + 2 // Position below text baseline
+            ctx.moveTo(x - textWidth / 2, underlineY)
+            ctx.lineTo(x + textWidth / 2, underlineY)
             ctx.stroke()
           }
-
-          ctx.fillText(decoration.data.text || '', x, y)
         } else if (decoration.type === 'drawing') {
           if (decoration.data.paths) {
             ctx.strokeStyle = decoration.data.color || '#000000'
@@ -599,6 +594,7 @@ export default function CardCanvas() {
             color: textSettings.color,
             fontFamily: textSettings.fontFamily,
             fontWeight: textSettings.fontWeight || 'normal',
+            fontStyle: 'normal',
             textDecoration: textSettings.textDecoration || 'none',
           },
         }
@@ -806,7 +802,7 @@ export default function CardCanvas() {
               fontFamily: selectedTextDecoration.data.fontFamily || 'Arial, sans-serif',
               color: selectedTextDecoration.data.color || '#000000',
               fontWeight: selectedTextDecoration.data.fontWeight || 'normal',
-              fontStyle: selectedTextDecoration.data.fontWeight === 'italic' ? 'italic' : 'normal',
+              fontStyle: selectedTextDecoration.data.fontStyle || 'normal',
               textDecoration: selectedTextDecoration.data.textDecoration === 'underline' ? 'underline' : 'none',
               transform: 'translate(-50%, -50%)',
             }}

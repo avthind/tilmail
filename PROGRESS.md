@@ -1,7 +1,7 @@
 add stickers
-grab mode delete function
 replace undo with delete
 text tool and grab mode borders
+text tool double click edit mode
 deploy - firebase
 test sending
 
