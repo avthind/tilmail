@@ -5,11 +5,11 @@ import { useAppStore } from '@/store/appStore'
 import styles from './DrawTool.module.css'
 
 const COLORS = [
-  { name: 'Black', value: '#000000' },
-  { name: 'Red', value: '#ff0000' },
-  { name: 'Blue', value: '#0000ff' },
-  { name: 'Green', value: '#00ff00' },
-  { name: 'Yellow', value: '#ffff00' },
+  { name: 'Pastel Black', value: '#808080' },
+  { name: 'Pastel Blue', value: '#A8D5E2' },
+  { name: 'Pastel Green', value: '#B5E5CF' },
+  { name: 'Pastel Yellow', value: '#FDF5BF' },
+  { name: 'Pastel Red', value: '#FFB3BA' },
 ]
 
 const SIZES = [
@@ -30,6 +30,9 @@ export default function DrawTool() {
 
   return (
     <div className={styles.drawTool}>
+      <p className={styles.hint}>
+        Click and drag to draw.
+      </p>
       <div className={styles.colorPicker}>
         {COLORS.map((c) => (
           <button
@@ -48,14 +51,15 @@ export default function DrawTool() {
             key={s.value}
             className={`${styles.sizeButton} ${lineWidth === s.value ? styles.active : ''}`}
             onClick={() => setLineWidth(s.value)}
+            aria-label={s.name}
+            title={s.name}
           >
-            {s.name}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={s.value} strokeLinecap="round">
+              <line x1="4" y1="12" x2="20" y2="12" />
+            </svg>
           </button>
         ))}
       </div>
-      <p className={styles.hint}>
-        Click and drag to draw.
-      </p>
     </div>
   )
 }

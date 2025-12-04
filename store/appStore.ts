@@ -62,7 +62,7 @@ export const useAppStore = create<AppState>((set) => ({
   selectedSticker: null,
   selectedDecoration: null,
   drawSettings: {
-    color: '#000000',
+    color: '#808080', // Pastel black (darker gray)
     lineWidth: 4,
   },
   textSettings: {

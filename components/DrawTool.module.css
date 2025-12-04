@@ -1,70 +1,76 @@
 .drawTool {
   margin-top: 0;
-  padding: 0;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .colorPicker {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   margin-bottom: 12px;
   justify-content: center;
 }
 
 .colorButton {
-  width: 40px;
-  height: 40px;
-  border: 3px solid transparent;
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .colorButton:hover {
-  transform: scale(1.15);
+  transform: scale(1.1);
 }
 
 .colorButton.active {
   border-color: var(--medium-teal);
-  box-shadow: 0 0 0 2px var(--dark-teal), 0 0 0 4px var(--medium-teal);
+  box-shadow: 0 0 0 2px var(--dark-teal);
 }
 
 .sizePicker {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 4px;
+  margin-bottom: 6px;
   justify-content: center;
 }
 
 .sizeButton {
-  padding: 8px 16px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(196, 218, 210, 0.1);
   border: 1px solid rgba(106, 156, 137, 0.4);
-  border-radius: 12px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
   color: var(--pale-mint);
-  font-family: 'Nunito', sans-serif;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .sizeButton:hover {
   background: rgba(106, 156, 137, 0.3);
   border-color: var(--medium-teal);
-  transform: scale(1.05);
 }
 
 .sizeButton.active {
   background: var(--medium-teal);
   color: var(--pure-white);
   border-color: var(--medium-teal);
-  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
+  box-shadow: 0 2px 6px rgba(106, 156, 137, 0.4);
 }
 
 .hint {
-  font-size: 11px;
+  font-size: 9px;
   color: var(--light-mint);
   text-align: center;
-  margin: 12px 0 0 0;
+  margin: 0 0 12px 0;
   font-family: 'Nunito', sans-serif;
 }

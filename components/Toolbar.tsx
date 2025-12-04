@@ -99,7 +99,14 @@ export default function Toolbar() {
           </div>
 
           {currentTool && (
-            <div className={styles.toolDrawer}>
+            <div 
+              className={styles.toolDrawer}
+              style={{
+                top: currentTool === 'sticker' ? '0px' : 
+                     currentTool === 'text' ? '52px' : 
+                     '116px' // draw button position (adjusted for better alignment)
+              }}
+            >
               {currentTool === 'sticker' && <StickerPicker />}
               {currentTool === 'text' && <TextTool />}
               {currentTool === 'draw' && <DrawTool />}
