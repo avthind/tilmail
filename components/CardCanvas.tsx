@@ -32,8 +32,22 @@ export default function CardCanvas() {
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
   const [editingTextValue, setEditingTextValue] = useState('')
+  const [isFlipping, setIsFlipping] = useState(false)
   const lastTapRef = useRef<number>(0)
   const justFinishedDrawingRef = useRef(false) // Track if we just finished drawing to skip redraw
+  const previousModeRef = useRef(mode)
+
+  // Trigger flip animation when mode changes
+  useEffect(() => {
+    if (previousModeRef.current !== mode) {
+      setIsFlipping(true)
+      const timer = setTimeout(() => {
+        setIsFlipping(false)
+      }, 600) // Match animation duration
+      previousModeRef.current = mode
+      return () => clearTimeout(timer)
+    }
+  }, [mode])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -73,7 +87,7 @@ export default function CardCanvas() {
     if (needsInit) {
       canvas.width = CARD_WIDTH
       canvas.height = CARD_HEIGHT
-      // Initialize with white background immediately
+      // Initialize with white background
       ctx.fillStyle = '#FFFFFF'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
     }
@@ -138,7 +152,7 @@ export default function CardCanvas() {
 
     // Draw all decorations
     const drawDecorations = async () => {
-      // Re-fill background
+      // Re-fill background with white
       ctx.fillStyle = '#FFFFFF'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
@@ -583,7 +597,7 @@ export default function CardCanvas() {
 
   return (
     <>
-      <div className={styles.cardCanvasContainer}>
+      <div className={`${styles.cardCanvasContainer} ${isFlipping ? styles.flipping : ''}`}>
         <canvas
           ref={canvasRef}
           className={styles.cardCanvas}

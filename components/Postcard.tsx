@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useAppStore } from '@/store/appStore'
 import EnvelopeFace from './EnvelopeFace'
@@ -8,38 +9,43 @@ import EnvelopeFace from './EnvelopeFace'
 export default function Postcard() {
   const cardRef = useRef<THREE.Group>(null)
   const { mode } = useAppStore()
+  const targetRotationRef = useRef({ y: 0 })
+  const [visibleFace, setVisibleFace] = useState<'front' | 'back'>(mode)
 
-  // Update rotation instantly when mode changes (no animation)
+  // Update target rotation when mode changes
   useEffect(() => {
-    if (cardRef.current) {
-      // Set rotation instantly without animation
-      cardRef.current.rotation.x = 0
-      cardRef.current.rotation.y = mode === 'back' ? Math.PI : 0
-      cardRef.current.rotation.z = 0
-    }
+    targetRotationRef.current.y = mode === 'back' ? Math.PI : 0
+    setVisibleFace(mode)
   }, [mode])
 
+  // Smoothly animate rotation to create flip effect
+  // Switch visible face when rotation passes 90 degrees
+  useFrame(() => {
+    if (cardRef.current) {
+      const currentRotation = cardRef.current.rotation.y
+      cardRef.current.rotation.y = THREE.MathUtils.lerp(
+        currentRotation,
+        targetRotationRef.current.y,
+        0.15
+      )
+      
+      // Switch face visibility when rotation crosses 90 degrees (π/2)
+      const normalizedRotation = ((cardRef.current.rotation.y % (Math.PI * 2)) + (Math.PI * 2)) % (Math.PI * 2)
+      if (normalizedRotation > Math.PI / 2 && normalizedRotation < (Math.PI * 3) / 2) {
+        if (visibleFace !== 'back') setVisibleFace('back')
+      } else {
+        if (visibleFace !== 'front') setVisibleFace('front')
+      }
+    }
+  })
+
   return (
-    <group ref={cardRef} position={[0, 0, 0]}>
-      {/* Postcard mesh - visual only, interactions handled by 2D canvas overlay */}
-      <mesh raycast={() => null}>
-        <boxGeometry args={[2.4, 1.6, 0.005]} />
-        <meshStandardMaterial color="#FFFFFF" />
-      </mesh>
-      
-      {/* Front face - visual only */}
+    <group ref={cardRef} position={[-1.2, 0, 0]}>
+      {/* Only show the face that should be visible */}
       <EnvelopeFace
-        face="front"
-        position={[0, 0, 0.003]}
+        face={visibleFace}
+        position={[0, 0, 0]}
         rotation={[0, 0, 0]}
-        size={[2.4, 1.6]}
-      />
-      
-      {/* Back face - visual only */}
-      <EnvelopeFace
-        face="back"
-        position={[0, 0, -0.003]}
-        rotation={[0, Math.PI, 0]}
         size={[2.4, 1.6]}
       />
     </group>
