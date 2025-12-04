@@ -2,7 +2,7 @@
 .rightToolbar {
   position: fixed;
   left: calc(50% + 350px);
-  top: 50%;
+  top: 40%;
   transform: translateY(-50%);
   width: 60px;
   background: rgba(22, 66, 60, 0.9);
@@ -191,7 +191,7 @@
 /* Bottom Toolbar - Actions */
 .bottomToolbar {
   position: fixed;
-  top: calc(50% + 250px);
+  top: calc(40% + 250px);
   left: 50%;
   transform: translateX(-50%);
   width: auto;

@@ -10,6 +10,28 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   justify-content: center;
+  max-height: calc(3 * (40px + 4px + 4px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  padding-right: 6px;
+}
+
+.stickerGrid::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stickerGrid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.stickerGrid::-webkit-scrollbar-thumb {
+  background: rgba(106, 156, 137, 0.3);
+  border-radius: 2px;
+}
+
+.stickerGrid::-webkit-scrollbar-thumb:hover {
+  background: rgba(106, 156, 137, 0.5);
 }
 
 .stickerButton {

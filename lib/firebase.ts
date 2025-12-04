@@ -25,33 +25,14 @@ export interface CardData {
 // Convert nested arrays to Firestore-compatible format
 function sanitizeForFirestore(data: any): any {
   if (Array.isArray(data)) {
-    // Check if it's a nested array (array of arrays)
-    if (data.length > 0 && Array.isArray(data[0])) {
-      // Convert nested array to object with numeric keys
-      return data.reduce((acc: any, item: any, index: number) => {
-        // Recursively sanitize each inner array
-        acc[index] = Array.isArray(item) 
-          ? item.reduce((innerAcc: any, innerItem: any, innerIndex: number) => {
-              innerAcc[innerIndex] = innerItem
-              return innerAcc
-            }, {})
-          : item
-        return acc
-      }, {})
-    }
-    // Regular array - check if any element is an array
-    const hasNestedArrays = data.some(item => Array.isArray(item))
-    if (hasNestedArrays) {
-      // Convert to object
-      return data.reduce((acc: any, item: any, index: number) => {
-        acc[index] = sanitizeForFirestore(item)
-        return acc
-      }, {})
-    }
-    // Simple array of primitives - keep as array
-    return data
-  } else if (data && typeof data === 'object') {
-    // Recursively sanitize object properties
+    // Always convert arrays to objects with numeric keys to avoid nested array issues
+    // This handles both simple arrays and nested arrays
+    return data.reduce((acc: any, item: any, index: number) => {
+      acc[index] = sanitizeForFirestore(item)
+      return acc
+    }, {})
+  } else if (data && typeof data === 'object' && data.constructor === Object) {
+    // Recursively sanitize object properties (but not Date, etc.)
     const sanitized: any = {}
     for (const key in data) {
       if (data.hasOwnProperty(key)) {
@@ -60,6 +41,7 @@ function sanitizeForFirestore(data: any): any {
     }
     return sanitized
   }
+  // Primitives and other types (Date, etc.) - return as is
   return data
 }
 
