@@ -143,7 +143,7 @@ export default function Toolbar() {
               style={{
                 top: currentTool === 'sticker' ? '0px' : 
                      currentTool === 'text' ? '52px' : 
-                     '116px' // draw button position (adjusted for better alignment)
+                     '104px' // draw button position (52px text + 44px button + 8px gap)
               }}
             >
               {currentTool === 'sticker' && <StickerPicker />}

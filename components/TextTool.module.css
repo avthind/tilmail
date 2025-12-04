@@ -1,34 +1,39 @@
 .textTool {
   margin-top: 0;
-  padding: 0;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .controls {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--pale-mint);
+  gap: 4px;
+  font-size: 9px;
+  color: var(--light-mint);
   font-family: 'Nunito', sans-serif;
 }
 
 .select {
-  flex: 1;
-  padding: 8px;
+  width: 152px;
+  height: 22px;
+  margin: 0 auto;
+  padding: 2px 4px;
   border: 1px solid rgba(106, 156, 137, 0.4);
-  border-radius: 12px;
-  font-size: 12px;
+  border-radius: 2px;
+  font-size: 8px;
   background: rgba(196, 218, 210, 0.1);
   color: var(--pale-mint);
   font-family: 'Inter', sans-serif;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .select:focus {
@@ -41,111 +46,123 @@
 .sizeButtons {
   display: flex;
   gap: 4px;
-  flex: 1;
+  width: 80%;
+  margin: 0 auto;
+  justify-content: center;
 }
 
 .sizeButton {
-  flex: 1;
-  padding: 8px 12px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(196, 218, 210, 0.1);
   border: 1px solid rgba(106, 156, 137, 0.4);
-  border-radius: 12px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 8px;
   color: var(--pale-mint);
   font-family: 'Nunito', sans-serif;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .sizeButton:hover {
   background: rgba(106, 156, 137, 0.3);
   border-color: var(--medium-teal);
-  transform: scale(1.05);
 }
 
 .sizeButton.active {
   background: var(--medium-teal);
   color: var(--pure-white);
   border-color: var(--medium-teal);
-  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
+  box-shadow: 0 2px 6px rgba(106, 156, 137, 0.4);
 }
 
 .colorPicker {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
 }
 
 .colorButton {
-  width: 32px;
-  height: 32px;
-  border: 3px solid transparent;
+  width: 28px;
+  height: 28px;
+  border: 2px solid transparent;
   border-radius: 50%;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
   padding: 0;
+  flex-shrink: 0;
 }
 
 .colorButton:hover {
-  transform: scale(1.15);
+  transform: scale(1.1);
 }
 
 .colorButton.active {
   border-color: var(--medium-teal);
-  box-shadow: 0 0 0 2px var(--dark-teal), 0 0 0 4px var(--medium-teal);
+  box-shadow: 0 0 0 2px var(--dark-teal);
 }
 
 .weightButtons {
   display: flex;
   gap: 4px;
   flex: 1;
+  justify-content: center;
 }
 
 .weightButton {
-  flex: 1;
-  padding: 8px 8px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(196, 218, 210, 0.1);
   border: 1px solid rgba(106, 156, 137, 0.4);
-  border-radius: 12px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 10px;
+  font-size: 8px;
   color: var(--pale-mint);
   font-family: 'Nunito', sans-serif;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .weightButton:hover {
   background: rgba(106, 156, 137, 0.3);
   border-color: var(--medium-teal);
-  transform: scale(1.05);
 }
 
 .weightButton.active {
   background: var(--medium-teal);
   color: var(--pure-white);
   border-color: var(--medium-teal);
-  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
+  box-shadow: 0 2px 6px rgba(106, 156, 137, 0.4);
 }
 
 .hint {
-  font-size: 11px;
+  font-size: 9px;
   color: var(--light-mint);
   text-align: center;
-  margin: 12px 0 0 0;
+  margin: 0 0 12px 0;
   font-family: 'Nunito', sans-serif;
 }
 
 .preview {
-  margin-top: 12px;
-  padding: 16px;
+  margin-top: 8px;
+  padding: 8px;
   background: rgba(196, 218, 210, 0.1);
   border: 1px solid rgba(106, 156, 137, 0.4);
-  border-radius: 12px;
+  border-radius: 2px;
   text-align: center;
-  min-height: 50px;
+  min-height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--pale-mint);
+  font-size: 10px;
 }

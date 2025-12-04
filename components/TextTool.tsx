@@ -11,11 +11,11 @@ const FONTS = [
 ]
 
 const COLORS = [
-  { name: 'Black', value: '#000000' },
-  { name: 'Red', value: '#ff0000' },
-  { name: 'Blue', value: '#0000ff' },
-  { name: 'Green', value: '#00ff00' },
-  { name: 'Yellow', value: '#ffff00' },
+  { name: 'Pastel Black', value: '#808080' },
+  { name: 'Pastel Blue', value: '#A8D5E2' },
+  { name: 'Pastel Green', value: '#B5E5CF' },
+  { name: 'Pastel Yellow', value: '#FDF5BF' },
+  { name: 'Pastel Red', value: '#FFB3BA' },
 ]
 
 const FONT_SIZES = [
@@ -75,37 +75,11 @@ export default function TextTool() {
 
   return (
     <div className={styles.textTool}>
+      <p className={styles.hint}>
+        Click to place and double-click to edit.
+      </p>
       <div className={styles.controls}>
-        <label className={styles.label}>
-          Font:
-          <select
-            value={fontFamily}
-            onChange={(e) => updateSettings(e.target.value)}
-            className={styles.select}
-          >
-            {FONTS.map((font) => (
-              <option key={font.value} value={font.value}>
-                {font.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={styles.label}>
-          Size:
-          <div className={styles.sizeButtons}>
-            {FONT_SIZES.map((size) => (
-              <button
-                key={size.value}
-                className={`${styles.sizeButton} ${fontSize === size.value ? styles.active : ''}`}
-                onClick={() => updateSettings(undefined, size.value)}
-              >
-                {size.name}
-              </button>
-            ))}
-          </div>
-        </label>
         <div className={styles.colorPicker}>
-          <label className={styles.label}>Color:</label>
           {COLORS.map((c) => (
             <button
               key={c.value}
@@ -117,42 +91,75 @@ export default function TextTool() {
             />
           ))}
         </div>
-        <label className={styles.label}>
-          Style:
-          <div className={styles.weightButtons}>
-            {FONT_WEIGHTS.map((weight) => (
-              <button
-                key={weight.value}
-                className={`${styles.weightButton} ${
-                  (weight.value === 'underline' && textDecoration === 'underline') ||
-                  (weight.value !== 'underline' && fontWeight === weight.value)
-                    ? styles.active
-                    : ''
-                }`}
-                onClick={() => handleFontWeight(weight.value)}
-              >
-                {weight.name}
-              </button>
-            ))}
-          </div>
-        </label>
-      </div>
-      <p className={styles.hint}>
-        Click to place, double-click to edit, drag to move.
-      </p>
-      <div className={styles.preview}>
-        <span
-          style={{
-            fontFamily,
-            fontSize: `${fontSize}px`,
-            color,
-            fontWeight,
-            textDecoration: textDecoration === 'underline' ? 'underline' : 'none',
-            fontStyle: fontWeight === 'italic' ? 'italic' : 'normal',
-          }}
+        <select
+          value={fontFamily}
+          onChange={(e) => updateSettings(e.target.value)}
+          className={styles.select}
         >
-          Preview Text
-        </span>
+          {FONTS.map((font) => (
+            <option key={font.value} value={font.value}>
+              {font.name}
+            </option>
+          ))}
+        </select>
+        <div className={styles.sizeButtons}>
+          {FONT_SIZES.map((size) => (
+            <button
+              key={size.value}
+              className={`${styles.sizeButton} ${fontSize === size.value ? styles.active : ''}`}
+              onClick={() => updateSettings(undefined, size.value)}
+              aria-label={size.name}
+              title={size.name}
+            >
+              <svg 
+                width={size.value === 16 ? "7" : size.value === 24 ? "9" : "12"} 
+                height={size.value === 16 ? "7" : size.value === 24 ? "9" : "12"} 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              >
+                <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                <line x1="9" y1="20" x2="15" y2="20"></line>
+                <line x1="12" y1="4" x2="12" y2="20"></line>
+              </svg>
+            </button>
+          ))}
+          {FONT_WEIGHTS.filter(weight => weight.value !== 'normal').map((weight) => (
+            <button
+              key={weight.value}
+              className={`${styles.weightButton} ${
+                (weight.value === 'underline' && textDecoration === 'underline') ||
+                (weight.value !== 'underline' && fontWeight === weight.value)
+                  ? styles.active
+                  : ''
+              }`}
+              onClick={() => handleFontWeight(weight.value)}
+              aria-label={weight.name}
+              title={weight.name}
+            >
+              {weight.value === 'bold' ? (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
+                  <path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"></path>
+                </svg>
+              ) : weight.value === 'italic' ? (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="19" y1="4" x2="10" y2="4"></line>
+                  <line x1="14" y1="20" x2="5" y2="20"></line>
+                  <line x1="15" y1="4" x2="9" y2="20"></line>
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 4v6a6 6 0 0 0 12 0V4"></path>
+                  <line x1="4" y1="20" x2="20" y2="20"></line>
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
