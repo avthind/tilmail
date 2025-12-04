@@ -248,21 +248,10 @@
 }
 
 .viewButton.active {
-  background: rgba(106, 156, 137, 0.4);
+  background: var(--medium-teal);
   color: var(--pure-white);
   border-color: var(--medium-teal);
-}
-
-.viewButton.active::after {
-  content: '';
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 2px;
-  background: var(--light-mint);
-  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
 }
 
 .undoButton {
@@ -291,27 +280,27 @@
 
 .sendButton {
   padding: 8px 16px;
-  background: var(--medium-teal);
-  color: var(--pure-white);
-  border: none;
+  background: var(--light-mint);
+  color: var(--dark-teal);
+  border: 1px solid var(--light-mint);
   border-radius: 2px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: 'Nunito', sans-serif;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(106, 156, 137, 0.4);
 }
 
 .sendButton:hover {
-  background: var(--light-mint);
+  background: var(--pale-mint);
+  border-color: var(--light-mint);
   color: var(--dark-teal);
-  box-shadow: 0 6px 16px rgba(106, 156, 137, 0.5);
+  transform: translateY(-1px);
 }
 
 .sendButton:active {
-  transform: scale(0.95);
+  transform: translateY(0) scale(0.98);
 }
 
 /* Mobile Responsive */
