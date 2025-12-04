@@ -6,7 +6,7 @@ A 3D interactive envelope decoration application where users can create and shar
 
 - **Frontend**: Next.js 14 (React) + CSS Modules (no Tailwind). Uses react-three-fiber + drei for 3D.
 - **Backend**: Firebase (Firestore + Storage).
-- **Optional services**: Twilio (SMS), SendGrid (email) for share/send. Short links via Firestore ID.
+- **Sharing**: Shareable links via Firestore ID with native sharing and social media integration.
 
 ## Features
 
@@ -29,10 +29,7 @@ tilmail/
 ├── app/                    # Next.js app directory
 │   ├── layout.tsx         # Root layout
 │   ├── page.tsx           # Main editor page
-│   ├── card/[id]/         # Public viewer page
-│   └── api/               # API routes
-│       ├── send-email/    # Email sending endpoint
-│       └── send-sms/      # SMS sending endpoint
+│   └── card/[id]/         # Public viewer page
 ├── components/            # React components
 │   ├── EnvelopeScene.tsx  # Main 3D scene
 │   ├── Envelope.tsx       # 3D envelope mesh
@@ -47,8 +44,7 @@ tilmail/
 ├── store/                 # State management
 │   └── appStore.ts        # Zustand store
 ├── lib/                   # Utilities
-│   ├── firebase.ts        # Firebase config & functions
-│   └── send.ts            # Send card functions
+│   └── firebase.ts        # Firebase config & functions
 └── public/                # Static assets
     └── stickers/          # Sticker images
 ```
@@ -135,30 +131,6 @@ tilmail/
    }
    ```
 
-### Optional: Email/SMS Integration
-
-#### SendGrid (Email)
-
-1. Sign up at [SendGrid](https://sendgrid.com/)
-2. Create an API key
-3. Add to `.env.local`:
-   ```env
-   SENDGRID_API_KEY=your-api-key
-   ```
-4. Update `app/api/send-email/route.ts` to use SendGrid SDK
-
-#### Twilio (SMS)
-
-1. Sign up at [Twilio](https://www.twilio.com/)
-2. Get Account SID and Auth Token
-3. Add to `.env.local`:
-   ```env
-   TWILIO_ACCOUNT_SID=your-account-sid
-   TWILIO_AUTH_TOKEN=your-auth-token
-   TWILIO_PHONE_NUMBER=your-phone-number
-   ```
-4. Update `app/api/send-sms/route.ts` to use Twilio SDK
-
 ## Usage
 
 ### Creating a Card
@@ -177,9 +149,9 @@ tilmail/
    - Select "Card" mode
    - Decorate the postcard
 
-4. **Save and send:**
+4. **Save and share:**
    - Click "Save" to save your design
-   - Click "Send" to generate a shareable link or send via email/SMS
+   - Click "Send" to generate a shareable link
 
 ### Viewing a Shared Card
 
@@ -206,8 +178,7 @@ Visit `/card/[id]` where `[id]` is the card ID from the share link. The envelope
    - Deploy
 
 3. **Configure environment variables in Vercel dashboard:**
-   - Add all `NEXT_PUBLIC_*` variables
-   - Add optional `SENDGRID_API_KEY`, `TWILIO_*` variables
+   - Add all `NEXT_PUBLIC_*` Firebase variables
 
 ### Firebase Hosting (Static Export)
 
@@ -249,7 +220,7 @@ For static export, you'll need to modify `next.config.js`:
    firebase deploy --only hosting
    ```
 
-   **Note:** Static export won't support dynamic API routes. For full functionality, use Vercel or Firebase Functions.
+   **Note:** Static export works well for this app since it uses Firebase directly from the client.
 
 ## Development
 

@@ -5,10 +5,10 @@ import { useAppStore } from '@/store/appStore'
 import styles from './DrawTool.module.css'
 
 const COLORS = [
-  { name: 'Pastel Black', value: '#808080' },
+  { name: 'Dark Gray', value: '#4A4A4A' },
   { name: 'Pastel Blue', value: '#A8D5E2' },
-  { name: 'Pastel Green', value: '#B5E5CF' },
-  { name: 'Pastel Yellow', value: '#FDF5BF' },
+  { name: 'Dark Green', value: '#6BA689' },
+  { name: 'Dark Yellow', value: '#D9C88F' },
   { name: 'Pastel Red', value: '#FFB3BA' },
 ]
 

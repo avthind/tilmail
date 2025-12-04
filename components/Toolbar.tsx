@@ -67,15 +67,23 @@ export default function Toolbar() {
   const handleToolClick = (tool: 'sticker' | 'text' | 'draw' | 'grab') => {
     if (currentTool === tool) {
       setTool(null)
-      // Clear sticker selection when closing sticker tool
+      // Clear selections when closing tool
       if (tool === 'sticker') {
         setSelectedSticker(null)
+      }
+      // Clear decoration selection when closing grab or text tool
+      if (tool === 'grab' || tool === 'text') {
+        setSelectedDecoration(null)
       }
     } else {
       setTool(tool)
       // Clear sticker selection when switching to a different tool
       if (currentTool === 'sticker') {
         setSelectedSticker(null)
+      }
+      // Clear decoration selection when switching away from grab or text tool
+      if (currentTool === 'grab' || currentTool === 'text') {
+        setSelectedDecoration(null)
       }
     }
   }

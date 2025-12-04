@@ -154,15 +154,15 @@ export default function StickerPicker() {
     if (selectedSticker === stickerId) {
       setSelectedSticker(null)
     } else {
-      setSelectedSticker(stickerId)
+    setSelectedSticker(stickerId)
     }
   }
 
   return (
     <div className={styles.stickerPicker}>
-      <p className={styles.hint}>
+        <p className={styles.hint}>
         Click on card to place sticker.
-      </p>
+        </p>
       <div className={styles.stickerGrid}>
         {STICKERS.map((sticker) => (
           <button

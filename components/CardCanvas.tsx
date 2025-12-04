@@ -8,6 +8,45 @@ import styles from './CardCanvas.module.css'
 // Card dimensions matching the 3D postcard
 const CARD_WIDTH = 480 // pixels
 const CARD_HEIGHT = 320 // pixels (2.4:1.6 ratio)
+const CARD_BACKGROUND_COLOR = '#F5E6D3' // Card background color (light beige)
+
+// Helper function to draw decorative border
+const drawDecorativeBorder = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+  const borderMargin = 5
+  const borderWidth = 2
+  const cornerSize = 30
+  
+  ctx.strokeStyle = '#5C4033' // Dark brown
+  ctx.lineWidth = borderWidth
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  
+  // Outer border frame
+  ctx.beginPath()
+  ctx.moveTo(borderMargin, borderMargin + cornerSize)
+  ctx.lineTo(borderMargin, borderMargin)
+  ctx.lineTo(borderMargin + cornerSize, borderMargin)
+  ctx.moveTo(width - borderMargin - cornerSize, borderMargin)
+  ctx.lineTo(width - borderMargin, borderMargin)
+  ctx.lineTo(width - borderMargin, borderMargin + cornerSize)
+  ctx.moveTo(width - borderMargin, height - borderMargin - cornerSize)
+  ctx.lineTo(width - borderMargin, height - borderMargin)
+  ctx.lineTo(width - borderMargin - cornerSize, height - borderMargin)
+  ctx.moveTo(borderMargin + cornerSize, height - borderMargin)
+  ctx.lineTo(borderMargin, height - borderMargin)
+  ctx.lineTo(borderMargin, height - borderMargin - cornerSize)
+  ctx.stroke()
+  
+  // Inner decorative line
+  const innerMargin = borderMargin + 8
+  ctx.strokeStyle = '#6B4423' // Dark brown accent
+  ctx.lineWidth = 1
+  ctx.setLineDash([4, 4])
+  ctx.beginPath()
+  ctx.rect(innerMargin, innerMargin, width - innerMargin * 2, height - innerMargin * 2)
+  ctx.stroke()
+  ctx.setLineDash([])
+}
 
 export default function CardCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -62,6 +101,14 @@ export default function CardCanvas() {
     }
   }, [mode, isFlipping])
 
+  // Clear editing state when switching away from text tool
+  useEffect(() => {
+    if (currentTool !== 'text' && editingTextId) {
+      setEditingTextId(null)
+      setEditingTextValue('')
+    }
+  }, [currentTool, editingTextId])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -100,9 +147,11 @@ export default function CardCanvas() {
     if (needsInit) {
       canvas.width = CARD_WIDTH
       canvas.height = CARD_HEIGHT
-      // Initialize with white background
-      ctx.fillStyle = '#FFFFFF'
+      // Initialize with card background color
+      ctx.fillStyle = CARD_BACKGROUND_COLOR
       ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // Draw decorative border on initialization
+      drawDecorativeBorder(ctx, canvas.width, canvas.height)
     }
 
     // Use displayMode (which may lag during flip) to determine which face to show
@@ -128,7 +177,16 @@ export default function CardCanvas() {
       faceDecorations.length !== prevFaceDecorations.length ||
       faceDecorations.some((dec, i) => {
         const prevDec = prevFaceDecorations[i]
-        return !prevDec || dec.id !== prevDec.id || dec.x !== prevDec.x || dec.y !== prevDec.y
+        if (!prevDec || dec.id !== prevDec.id || dec.x !== prevDec.x || dec.y !== prevDec.y) {
+          return true
+        }
+        // Also check if decoration data changed (for real-time appearance updates)
+        if (dec.type !== prevDec.type) {
+          return true
+        }
+        // Deep compare data object for changes (font size, color, etc.)
+        const dataChanged = JSON.stringify(dec.data) !== JSON.stringify(prevDec.data)
+        return dataChanged
       })
 
     // Check if only selection changed (simple reference/ID comparison)
@@ -147,7 +205,7 @@ export default function CardCanvas() {
       const needsRedraw = selectedDecoration && (() => {
         const dec = faceDecorations.find(d => d.id === selectedDecoration.id)
         if (currentTool === 'grab') {
-          return dec && (dec.type === 'sticker' || dec.type === 'text' || dec.type === 'drawing')
+        return dec && (dec.type === 'sticker' || dec.type === 'text' || dec.type === 'drawing')
         } else if (currentTool === 'text') {
           return dec && dec.type === 'text'
         }
@@ -176,8 +234,8 @@ export default function CardCanvas() {
       return
     }
 
-    // Clear canvas with white background
-    ctx.fillStyle = '#FFFFFF'
+    // Clear canvas with card background color
+    ctx.fillStyle = CARD_BACKGROUND_COLOR
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     // If flipping, only show white background (hide all decorations)
@@ -188,15 +246,22 @@ export default function CardCanvas() {
 
     // Draw all decorations
     const drawDecorations = async () => {
-      // Re-fill background with white
-      ctx.fillStyle = '#FFFFFF'
+      // Re-fill background with card background color
+      ctx.fillStyle = CARD_BACKGROUND_COLOR
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
+      // Draw decorative premium invitation border
+      drawDecorativeBorder(ctx, canvas.width, canvas.height)
+
       for (const decoration of faceDecorations) {
-        // Show selection indicators in grab mode or when text tool is active and text is selected
+        // Show selection indicators only when the appropriate tool is active
         const isSelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
+        // Only show grab mode selection when grab tool is active
         const showFullSelection = currentTool === 'grab' && isSelected
+        // Only show text tool selection when text tool is active
         const showTextSelection = currentTool === 'text' && isSelected && decoration.type === 'text'
+        // Only allow editing when text tool is selected
+        const isEditing = currentTool === 'text' && decoration.type === 'text' && editingTextId === decoration.id
 
         if (decoration.type === 'sticker') {
           const scale = decoration.data.scale || 0.15
@@ -205,7 +270,7 @@ export default function CardCanvas() {
           const y = (decoration.y + CARD_HEIGHT / 2)
 
           // Draw selection border (only in grab mode for stickers)
-          if (showFullSelection) {
+          if (currentTool === 'grab' && showFullSelection) {
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
             ctx.setLineDash([5, 5])
@@ -263,13 +328,36 @@ export default function CardCanvas() {
           const y = (decoration.y + CARD_HEIGHT / 2)
 
           // Draw selection border
-          if (showTextSelection || showFullSelection) {
+          // Only show borders when the appropriate tool is explicitly active
+          // Text tool: full line border (solid) for selection or editing
+          if (currentTool === 'text' && decoration.type === 'text') {
+            // Double-check: only show if text tool is active AND (editing or selected)
+            // Check selectedDecoration directly to avoid stale state
+            const isTextEditing = editingTextId === decoration.id && currentTool === 'text'
+            const isTextSelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id && currentTool === 'text'
+            
+            if (isTextEditing || isTextSelected) {
+              const textWidth = ctx.measureText(decoration.data.text || '').width
+              const textHeight = fontSize
+              
+              ctx.strokeStyle = '#6a9c89'
+              ctx.lineWidth = 2
+              ctx.setLineDash([]) // Solid line
+              ctx.strokeRect(
+                x - textWidth / 2 - 8,
+                y - textHeight / 2 - 8,
+                textWidth + 16,
+                textHeight + 16
+              )
+            }
+          } else if (currentTool === 'grab' && showFullSelection) {
+            // Grab tool: dotted border for selection
             const textWidth = ctx.measureText(decoration.data.text || '').width
             const textHeight = fontSize
             
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
-            ctx.setLineDash([5, 5])
+            ctx.setLineDash([5, 5]) // Dotted line
             ctx.strokeRect(
               x - textWidth / 2 - 8,
               y - textHeight / 2 - 8,
@@ -328,7 +416,7 @@ export default function CardCanvas() {
             })
             
             // Draw selection border and trash icon if selected (only in grab mode)
-            if (showFullSelection && minX !== Infinity) {
+            if (currentTool === 'grab' && showFullSelection && minX !== Infinity) {
               const padding = 8
               ctx.strokeStyle = '#6a9c89'
               ctx.lineWidth = 2
@@ -355,7 +443,7 @@ export default function CardCanvas() {
     prevDecorationsRef.current = decorations
     prevModeRef.current = displayMode
     prevSelectedDecorationRef.current = selectedDecoration
-  }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool])
+  }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool, editingTextId])
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -638,6 +726,9 @@ export default function CardCanvas() {
   }
 
   const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Only allow double-click to edit when text tool is selected
+    if (currentTool !== 'text') return
+    
     const coords = getCanvasCoordinates(e)
     if (!coords) return
 
