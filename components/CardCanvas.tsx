@@ -10,44 +10,6 @@ const CARD_WIDTH = 480 // pixels
 const CARD_HEIGHT = 320 // pixels (2.4:1.6 ratio)
 const CARD_BACKGROUND_COLOR = '#F5E6D3' // Card background color (light beige)
 
-// Helper function to draw decorative border
-const drawDecorativeBorder = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-  const borderMargin = 5
-  const borderWidth = 2
-  const cornerSize = 30
-  
-  ctx.strokeStyle = '#5C4033' // Dark brown
-  ctx.lineWidth = borderWidth
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-  
-  // Outer border frame
-  ctx.beginPath()
-  ctx.moveTo(borderMargin, borderMargin + cornerSize)
-  ctx.lineTo(borderMargin, borderMargin)
-  ctx.lineTo(borderMargin + cornerSize, borderMargin)
-  ctx.moveTo(width - borderMargin - cornerSize, borderMargin)
-  ctx.lineTo(width - borderMargin, borderMargin)
-  ctx.lineTo(width - borderMargin, borderMargin + cornerSize)
-  ctx.moveTo(width - borderMargin, height - borderMargin - cornerSize)
-  ctx.lineTo(width - borderMargin, height - borderMargin)
-  ctx.lineTo(width - borderMargin - cornerSize, height - borderMargin)
-  ctx.moveTo(borderMargin + cornerSize, height - borderMargin)
-  ctx.lineTo(borderMargin, height - borderMargin)
-  ctx.lineTo(borderMargin, height - borderMargin - cornerSize)
-  ctx.stroke()
-  
-  // Inner decorative line
-  const innerMargin = borderMargin + 8
-  ctx.strokeStyle = '#6B4423' // Dark brown accent
-  ctx.lineWidth = 1
-  ctx.setLineDash([4, 4])
-  ctx.beginPath()
-  ctx.rect(innerMargin, innerMargin, width - innerMargin * 2, height - innerMargin * 2)
-  ctx.stroke()
-  ctx.setLineDash([])
-}
-
 export default function CardCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const {
@@ -195,16 +157,21 @@ export default function CardCanvas() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Set canvas size (only once)
-    const needsInit = canvas.width !== CARD_WIDTH || canvas.height !== CARD_HEIGHT
+    // Set canvas size accounting for device pixel ratio (for crisp rendering on high-DPI displays)
+    const dpr = window.devicePixelRatio || 1
+    const needsInit = canvas.width !== CARD_WIDTH * dpr || canvas.height !== CARD_HEIGHT * dpr
     if (needsInit) {
-      canvas.width = CARD_WIDTH
-      canvas.height = CARD_HEIGHT
+      // Set internal resolution to account for device pixel ratio
+      canvas.width = CARD_WIDTH * dpr
+      canvas.height = CARD_HEIGHT * dpr
+      // Scale the context to match device pixel ratio
+      ctx.scale(dpr, dpr)
+      // Set CSS size to display size (not internal resolution)
+      canvas.style.width = `${CARD_WIDTH}px`
+      canvas.style.height = `${CARD_HEIGHT}px`
       // Initialize with card background color
       ctx.fillStyle = CARD_BACKGROUND_COLOR
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-      // Draw decorative border on initialization
-      drawDecorativeBorder(ctx, canvas.width, canvas.height)
+      ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
     }
 
     // Use displayMode (which may lag during flip) to determine which face to show
@@ -305,9 +272,6 @@ export default function CardCanvas() {
       // Re-fill background with card background color
       ctx.fillStyle = CARD_BACKGROUND_COLOR
       ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      // Draw decorative premium invitation border
-      drawDecorativeBorder(ctx, canvas.width, canvas.height)
 
       for (const decoration of faceDecorations) {
         // Show selection indicators only when the appropriate tool is active
