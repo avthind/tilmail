@@ -47,13 +47,17 @@
 .textInput {
   position: absolute;
   background: transparent;
-  border: 2px solid #6a9c89;
-  border-radius: 2px;
-  padding: 4px 8px;
+  border: none;
+  border-radius: 0;
+  padding: 0;
   outline: none;
-  min-width: 200px;
+  min-width: 0;
+  width: auto;
   text-align: center;
   z-index: 100;
   pointer-events: auto;
+  caret-color: currentColor;
+  /* Make it visually seamless - no visible input field */
+  box-shadow: none;
 }
 

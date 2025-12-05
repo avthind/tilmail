@@ -22,6 +22,10 @@ const STICKERS = [
   { id: 'fire', name: 'Fire', color: '#ff6b6b' },
   { id: 'diamond', name: 'Diamond', color: '#a8d5e2' },
   { id: 'clover', name: 'Clover', color: '#b5e5cf' },
+  { id: 'rocket', name: 'Rocket', color: '#ff6b6b' },
+  { id: 'unicorn', name: 'Unicorn', color: '#ff9f9f' },
+  { id: 'pizza', name: 'Pizza', color: '#ffd93d' },
+  { id: 'crown', name: 'Crown', color: '#ffd93d' },
 ]
 
 // Generate sticker SVG data URL
@@ -128,6 +132,39 @@ const getStickerSVG = (id: string, color: string): string => {
       <circle cx="20" cy="40" r="6" fill="${color}" stroke="#fff" stroke-width="2"/>
       <circle cx="44" cy="40" r="6" fill="${color}" stroke="#fff" stroke-width="2"/>
       <line x1="32" y1="32" x2="32" y2="56" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    </svg>`,
+    rocket: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 8 L28 20 L32 24 L36 20 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <rect x="24" y="24" width="16" height="24" rx="2" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <circle cx="32" cy="36" r="4" fill="#fff" opacity="0.8"/>
+      <path d="M20 48 L24 52 L20 56 M44 48 L40 52 L44 56" stroke="${color}" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M24 52 L40 52" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
+    </svg>`,
+    unicorn: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="32" cy="40" r="14" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <ellipse cx="24" cy="32" rx="6" ry="8" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <path d="M18 28 Q16 20 20 16 Q24 12 28 16" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <path d="M32 12 L30 20 L34 20 Z" fill="#ffd93d" stroke="#fff" stroke-width="2"/>
+      <circle cx="26" cy="30" r="2" fill="#fff"/>
+      <circle cx="30" cy="30" r="2" fill="#fff"/>
+      <path d="M24 36 Q28 38 32 36" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M20 44 Q24 48 28 46 Q32 48 36 46 Q40 48 44 44" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </svg>`,
+    pizza: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 32 L32 8 Q32 8 48 16 Q56 24 56 32 Q56 40 48 48 Q40 56 32 56 Q24 56 16 48 Q8 40 8 32 Q8 24 16 16 Q24 8 32 8 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <circle cx="28" cy="24" r="2" fill="#fff"/>
+      <circle cx="36" cy="28" r="2" fill="#fff"/>
+      <circle cx="24" cy="36" r="2" fill="#fff"/>
+      <circle cx="40" cy="40" r="2" fill="#fff"/>
+      <path d="M32 32 L32 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      <path d="M32 32 L48 16" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+    </svg>`,
+    crown: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 44 L20 28 L24 36 L28 24 L32 40 L36 24 L40 36 L44 28 L48 44 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <rect x="16" y="44" width="32" height="4" fill="${color}" stroke="#fff" stroke-width="2"/>
+      <circle cx="24" cy="32" r="3" fill="#fff" opacity="0.8"/>
+      <circle cx="32" cy="28" r="3" fill="#fff" opacity="0.8"/>
+      <circle cx="40" cy="32" r="3" fill="#fff" opacity="0.8"/>
     </svg>`,
   }
   return `data:image/svg+xml;base64,${btoa(svgs[id] || '')}`

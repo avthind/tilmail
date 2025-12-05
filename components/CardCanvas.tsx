@@ -101,13 +101,71 @@ export default function CardCanvas() {
     }
   }, [mode, isFlipping])
 
-  // Clear editing state when switching away from text tool
+  // Save and clear editing state when switching away from text tool
   useEffect(() => {
-    if (currentTool !== 'text' && editingTextId) {
-      setEditingTextId(null)
-      setEditingTextValue('')
+    if (currentTool !== 'text') {
+      // Handle text that was being edited
+      if (editingTextId) {
+        // Save the text before clearing edit mode
+        const decoration = decorations.front.find(d => d.id === editingTextId && d.type === 'text') ||
+                           decorations.back.find(d => d.id === editingTextId && d.type === 'text')
+        if (decoration) {
+          const face = decorations.front.find(d => d.id === editingTextId) ? 'front' : 'back'
+          // Use editingTextValue if it exists, otherwise use the decoration's current text
+          const textToSave = editingTextValue || decoration.data.text || ''
+          
+          // If text is still placeholder or empty, remove it (user didn't actually add content)
+          if (textToSave === 'Your text…' || textToSave.trim() === '') {
+            removeDecoration(face, editingTextId)
+          } else {
+            updateDecoration(face, editingTextId, {
+              ...decoration.data,
+              text: textToSave,
+            })
+          }
+        }
+        setEditingTextId(null)
+        setEditingTextValue('')
+      }
+      
+      // Check ALL text decorations for placeholder text that should be removed
+      // Check both faces to catch placeholder text on either side
+      // Use a snapshot of decorations at the time of tool switch
+      const decorationsSnapshot = { ...decorations }
+      const editingTextIdSnapshot = editingTextId
+      
+      ;(['front', 'back'] as const).forEach((face) => {
+        const faceDecorations = decorationsSnapshot[face] || []
+        
+        // Collect IDs of placeholder text to remove (don't modify while iterating)
+        const placeholderTextIds: string[] = []
+        faceDecorations.forEach((decoration) => {
+          if (decoration.type === 'text' && 
+              decoration.data.text === 'Your text…' && 
+              decoration.id !== editingTextIdSnapshot) {
+            // Mark for removal
+            placeholderTextIds.push(decoration.id)
+          }
+        })
+        
+        // Remove all placeholder text decorations
+        placeholderTextIds.forEach((id) => {
+          removeDecoration(face, id)
+        })
+      })
     }
-  }, [currentTool, editingTextId])
+  }, [currentTool, editingTextId, editingTextValue, decorations, updateDecoration, removeDecoration])
+  
+  // Force canvas redraw when currentTool changes to ensure borders update
+  useEffect(() => {
+    // Trigger a redraw by updating a ref or forcing a state change
+    // The draw function already has currentTool in dependencies, but this ensures immediate update
+    if (canvasRef.current) {
+      // Force a redraw by accessing the canvas
+      const canvas = canvasRef.current
+      // This will trigger the draw function through the useEffect that watches decorations/currentTool
+    }
+  }, [currentTool])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -127,6 +185,7 @@ export default function CardCanvas() {
   const prevDecorationsRef = useRef(decorations)
   const prevModeRef = useRef(mode)
   const prevSelectedDecorationRef = useRef(selectedDecoration)
+  const prevToolRef = useRef(currentTool)
 
   // Draw all decorations on canvas
   useEffect(() => {
@@ -223,8 +282,11 @@ export default function CardCanvas() {
       }
     }
 
-    // Skip redraw if nothing changed
-    if (!decorationsChanged && !selectionChanged) {
+    // Check if currentTool changed (need to redraw borders when tool changes)
+    const toolChanged = currentTool !== prevToolRef.current
+    
+    // Skip redraw if nothing changed (but always redraw if tool changed)
+    if (!decorationsChanged && !selectionChanged && !toolChanged) {
       return
     }
 
@@ -328,22 +390,26 @@ export default function CardCanvas() {
           // Draw selection border
           // Only show borders when the appropriate tool is explicitly active
           // Text tool: full line border (solid) for selection or editing
-          if (currentTool === 'text' && decoration.type === 'text') {
-            // Double-check: only show if text tool is active AND (editing or selected)
-            // Check selectedDecoration directly to avoid stale state
-            const isTextEditing = editingTextId === decoration.id && currentTool === 'text'
-            const isTextSelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id && currentTool === 'text'
+          // IMPORTANT: Only draw text border when text tool is ACTIVE
+          // Use strict equality and multiple checks to prevent border in other tools
+          if (decoration.type === 'text' && currentTool === 'text') {
+            // Triple-check: only show if text tool is active AND (editing or selected)
+            // This ensures border never shows in other tools
+            const toolIsText = currentTool === 'text'
+            const isTextEditing = toolIsText && editingTextId === decoration.id
+            const isTextSelected = toolIsText && selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
             
-            if (isTextEditing || isTextSelected) {
-            ctx.strokeStyle = '#6a9c89'
-            ctx.lineWidth = 2
+            // Final defensive check: ONLY draw if currentTool is explicitly 'text'
+            if (toolIsText && (isTextEditing || isTextSelected)) {
+              ctx.strokeStyle = '#6a9c89'
+              ctx.lineWidth = 2
               ctx.setLineDash([]) // Solid line
-            ctx.strokeRect(
-              x - textWidth / 2 - 8,
-              y - textHeight / 2 - 8,
-              textWidth + 16,
-              textHeight + 16
-            )
+              ctx.strokeRect(
+                x - textWidth / 2 - 8,
+                y - textHeight / 2 - 8,
+                textWidth + 16,
+                textHeight + 16
+              )
             }
           } else if (currentTool === 'grab' && showFullSelection) {
             // Grab tool: dotted border for selection
@@ -359,18 +425,24 @@ export default function CardCanvas() {
             ctx.setLineDash([])
           }
 
-          // Draw text first
-          ctx.fillText(decoration.data.text || '', x, y)
+          // Don't draw text on canvas when editing - the input field handles it
+          // This makes it look like you're editing directly on the canvas
+          const isCurrentlyEditing = editingTextId === decoration.id && currentTool === 'text'
           
-          // Draw underline after text, using actual text width
-          if (decoration.data.textDecoration === 'underline') {
-            ctx.strokeStyle = decoration.data.color || '#000000'
-            ctx.lineWidth = Math.max(1, fontSize / 20) // Scale underline thickness with font size
-            ctx.beginPath()
-            const underlineY = y + fontSize / 2 + 2 // Position below text baseline
-            ctx.moveTo(x - textWidth / 2, underlineY)
-            ctx.lineTo(x + textWidth / 2, underlineY)
-            ctx.stroke()
+          if (!isCurrentlyEditing) {
+            // Draw text first
+            ctx.fillText(decoration.data.text || '', x, y)
+            
+            // Draw underline after text, using actual text width
+            if (decoration.data.textDecoration === 'underline') {
+              ctx.strokeStyle = decoration.data.color || '#000000'
+              ctx.lineWidth = Math.max(1, fontSize / 20) // Scale underline thickness with font size
+              ctx.beginPath()
+              const underlineY = y + fontSize / 2 + 2 // Position below text baseline
+              ctx.moveTo(x - textWidth / 2, underlineY)
+              ctx.lineTo(x + textWidth / 2, underlineY)
+              ctx.stroke()
+            }
           }
         } else if (decoration.type === 'drawing') {
           if (decoration.data.paths) {
@@ -438,6 +510,7 @@ export default function CardCanvas() {
     prevDecorationsRef.current = decorations
     prevModeRef.current = displayMode
     prevSelectedDecorationRef.current = selectedDecoration
+    prevToolRef.current = currentTool
   }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool, editingTextId])
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -558,6 +631,17 @@ export default function CardCanvas() {
       setDragStart({ x: coords.x, y: coords.y })
     } else if (!decoration) {
       // Clicked on empty space
+      // Check if we need to remove placeholder text that was never edited
+      if (currentTool === 'text' && selectedDecoration) {
+        const selectedDec = decorations[selectedDecoration.face]?.find(
+          d => d.id === selectedDecoration.id && d.type === 'text'
+        )
+        // If selected text has placeholder and wasn't being edited, remove it
+        if (selectedDec && selectedDec.data.text === 'Your text…' && !editingTextId) {
+          removeDecoration(selectedDecoration.face, selectedDecoration.id)
+        }
+      }
+      
       // In grab mode, don't place new items
       if (currentTool === 'grab') {
         // Deselect if clicking empty space in grab mode
@@ -582,6 +666,41 @@ export default function CardCanvas() {
           // Don't auto-select decoration - user can use grab tool if they want to move it
         }
       } else if (currentTool === 'text') {
+        // Save and clear any existing text editing before adding new text
+        if (editingTextId) {
+          // Save the currently editing text before adding new one
+          const decoration = decorations.front.find(d => d.id === editingTextId && d.type === 'text') ||
+                           decorations.back.find(d => d.id === editingTextId && d.type === 'text')
+          if (decoration) {
+            const face = decorations.front.find(d => d.id === editingTextId) ? 'front' : 'back'
+            // Use editingTextValue if it exists, otherwise use the decoration's current text
+            const textToSave = editingTextValue || decoration.data.text || ''
+            
+            // If text is still placeholder or empty, remove it (user didn't actually add content)
+            if (textToSave === 'Your text…' || textToSave.trim() === '') {
+              removeDecoration(face, editingTextId)
+            } else {
+              updateDecoration(face, editingTextId, {
+                ...decoration.data,
+                text: textToSave,
+              })
+            }
+          }
+          setEditingTextId(null)
+          setEditingTextValue('')
+        }
+        
+        // Also check if there's a selected text with placeholder that wasn't being edited
+        if (selectedDecoration && !editingTextId) {
+          const selectedDec = decorations[selectedDecoration.face]?.find(
+            d => d.id === selectedDecoration.id && d.type === 'text'
+          )
+          // If selected text has placeholder and wasn't being edited, remove it
+          if (selectedDec && selectedDec.data.text === 'Your text…') {
+            removeDecoration(selectedDecoration.face, selectedDecoration.id)
+          }
+        }
+        
         const face = mode === 'front' ? 'front' : 'back'
         const newDecoration = {
           type: 'text' as const,
@@ -599,10 +718,9 @@ export default function CardCanvas() {
           },
         }
         addDecoration(face, newDecoration)
-        // Auto-select and start editing immediately
+        // Auto-select the new text (but don't start editing immediately)
+        // User can double-click to edit if they want
         setSelectedDecoration({ face, id: newDecoration.id })
-        setEditingTextId(newDecoration.id)
-        setEditingTextValue('Your text…')
       } else {
         setSelectedDecoration(null)
       }
@@ -744,25 +862,105 @@ export default function CardCanvas() {
     : null
 
   const handleTextInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditingTextValue(e.target.value)
-  }
-
-  const handleTextInputBlur = () => {
+    let newValue = e.target.value
+    
+    // Auto-clear placeholder text when user starts typing
+    // If the current value is the placeholder and user types, replace it with what they typed
+    if (editingTextValue === 'Your text…' && newValue !== 'Your text…' && newValue.length > 0) {
+      // User started typing - if they typed a single character, use just that
+      // If they typed multiple (e.g., paste), use what they typed
+      if (newValue.length === 1 || !newValue.includes('Your text…')) {
+        // User typed a new character - replace placeholder
+        newValue = newValue.replace('Your text…', '')
+      }
+    }
+    
+    setEditingTextValue(newValue)
+    
+    // Update canvas text in real-time as user types
     if (selectedTextDecoration && editingTextId) {
       const face = selectedDecoration!.face
       updateDecoration(face, editingTextId, {
         ...selectedTextDecoration.data,
-        text: editingTextValue || 'Your text…',
+        text: newValue || '',
       })
     }
-    setEditingTextId(null)
   }
-
+  
   const handleTextInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // If placeholder is selected and user types, clear it first
+    if (editingTextValue === 'Your text…' && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      // User typed a character while placeholder is shown - clear it
+      setEditingTextValue('')
+      e.preventDefault()
+      // Insert the character manually
+      const input = e.currentTarget
+      const newValue = e.key
+      setEditingTextValue(newValue)
+      if (selectedTextDecoration && editingTextId) {
+        const face = selectedDecoration!.face
+        updateDecoration(face, editingTextId, {
+          ...selectedTextDecoration.data,
+          text: newValue,
+        })
+      }
+      // Move cursor to end
+      setTimeout(() => {
+        input.setSelectionRange(newValue.length, newValue.length)
+      }, 0)
+      return
+    }
+    
     if (e.key === 'Enter') {
-      e.currentTarget.blur()
+      // Save text before blurring to ensure it's visible immediately
+      if (editingTextId && selectedTextDecoration) {
+        const face = selectedDecoration!.face
+        updateDecoration(face, editingTextId, {
+          ...selectedTextDecoration.data,
+          text: editingTextValue || '',
+        })
+      }
+      // Small delay to ensure decoration is updated before blur
+      setTimeout(() => {
+        e.currentTarget.blur()
+      }, 0)
     }
   }
+
+  const handleTextInputBlur = () => {
+    // Save text before clearing edit mode
+    // Use editingTextId directly to find the decoration, don't rely on selectedDecoration
+    // which might have changed if user clicked to place new text
+    if (editingTextId) {
+      // Find the decoration in both faces (front and back) since we don't know which face
+      const decoration = decorations.front.find(d => d.id === editingTextId && d.type === 'text') ||
+                         decorations.back.find(d => d.id === editingTextId && d.type === 'text')
+      
+      if (decoration) {
+        // Determine which face this decoration belongs to
+        const face = decorations.front.find(d => d.id === editingTextId) ? 'front' : 'back'
+        
+        // If text is still placeholder or empty, remove it (user didn't actually add content)
+        const finalText = editingTextValue || ''
+        if (finalText === 'Your text…' || finalText.trim() === '') {
+          removeDecoration(face, editingTextId)
+        } else {
+          // Save the text value from the input field
+          // This ensures the text is saved before we clear editingTextId
+          updateDecoration(face, editingTextId, {
+            ...decoration.data,
+            text: finalText,
+          })
+        }
+      }
+    }
+    // Clear editing state after a small delay to ensure canvas has time to redraw
+    // The text should already be saved from the onChange handler, but we save again here to be sure
+    setTimeout(() => {
+      setEditingTextId(null)
+    }, 0)
+  }
+
 
   return (
     <>
@@ -794,6 +992,12 @@ export default function CardCanvas() {
             onChange={handleTextInputChange}
             onBlur={handleTextInputBlur}
             onKeyDown={handleTextInputKeyDown}
+            onFocus={(e) => {
+              // Select all text when focused (including placeholder) so user can immediately type
+              if (editingTextValue === 'Your text…') {
+                e.target.select()
+              }
+            }}
             className={styles.textInput}
             style={{
               left: `${(selectedTextDecoration.x + CARD_WIDTH / 2)}px`,
@@ -805,6 +1009,12 @@ export default function CardCanvas() {
               fontStyle: selectedTextDecoration.data.fontStyle || 'normal',
               textDecoration: selectedTextDecoration.data.textDecoration === 'underline' ? 'underline' : 'none',
               transform: 'translate(-50%, -50%)',
+              background: 'transparent',
+              border: 'none',
+              width: 'auto',
+              minWidth: '0',
+              padding: '0',
+              textAlign: 'center',
             }}
             autoFocus
           />

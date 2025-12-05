@@ -1,7 +1,8 @@
-add stickers
-replace undo with delete
-text tool and grab mode borders
 text tool double click edit mode
+add stickers
+add sticker categories
+text tool and grab mode borders
+
 deploy - firebase
 test sending
 
