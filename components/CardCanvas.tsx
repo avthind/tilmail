@@ -10,7 +10,11 @@ const CARD_WIDTH = 480 // pixels
 const CARD_HEIGHT = 320 // pixels (2.4:1.6 ratio)
 const CARD_BACKGROUND_COLOR = '#F5E6D3' // Card background color (light beige)
 
-export default function CardCanvas() {
+interface CardCanvasProps {
+  readOnly?: boolean
+}
+
+export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const {
     mode,
@@ -164,12 +168,16 @@ export default function CardCanvas() {
       // Set internal resolution to account for device pixel ratio
       canvas.width = CARD_WIDTH * dpr
       canvas.height = CARD_HEIGHT * dpr
-      // Scale the context to match device pixel ratio
-      ctx.scale(dpr, dpr)
       // Set CSS size to display size (not internal resolution)
       canvas.style.width = `${CARD_WIDTH}px`
       canvas.style.height = `${CARD_HEIGHT}px`
-      // Initialize with card background color
+    }
+    // Always ensure context is scaled (setting canvas.width resets the context, so re-apply scale)
+    ctx.setTransform(1, 0, 0, 1, 0, 0) // Reset transform first
+    ctx.scale(dpr, dpr)
+    
+    // Initialize background on first init
+    if (needsInit) {
       ctx.fillStyle = CARD_BACKGROUND_COLOR
       ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
     }
@@ -258,8 +266,9 @@ export default function CardCanvas() {
     }
 
     // Clear canvas with card background color
+    // Use logical dimensions after context scaling
     ctx.fillStyle = CARD_BACKGROUND_COLOR
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
 
     // If flipping, only show white background (hide all decorations)
     if (isFlipping) {
@@ -270,8 +279,9 @@ export default function CardCanvas() {
     // Draw all decorations
     const drawDecorations = async () => {
       // Re-fill background with card background color
+      // Use logical dimensions after context scaling
       ctx.fillStyle = CARD_BACKGROUND_COLOR
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
 
       for (const decoration of faceDecorations) {
         // Show selection indicators only when the appropriate tool is active
@@ -289,8 +299,8 @@ export default function CardCanvas() {
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
 
-          // Draw selection border (only in grab mode for stickers)
-          if (currentTool === 'grab' && showFullSelection) {
+          // Draw selection border (only in grab mode for stickers, not in read-only)
+          if (!readOnly && currentTool === 'grab' && showFullSelection) {
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
             ctx.setLineDash([5, 5])
@@ -352,11 +362,11 @@ export default function CardCanvas() {
             const textHeight = fontSize
             
           // Draw selection border
-          // Only show borders when the appropriate tool is explicitly active
+          // Only show borders when the appropriate tool is explicitly active and not in read-only mode
           // Text tool: full line border (solid) for selection or editing
           // IMPORTANT: Only draw text border when text tool is ACTIVE
           // Use strict equality and multiple checks to prevent border in other tools
-          if (decoration.type === 'text' && currentTool === 'text') {
+          if (!readOnly && decoration.type === 'text' && currentTool === 'text') {
             // Triple-check: only show if text tool is active AND (editing or selected)
             // This ensures border never shows in other tools
             const toolIsText = currentTool === 'text'
@@ -375,7 +385,7 @@ export default function CardCanvas() {
                 textHeight + 16
               )
             }
-          } else if (currentTool === 'grab' && showFullSelection) {
+          } else if (!readOnly && currentTool === 'grab' && showFullSelection) {
             // Grab tool: dotted border for selection
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
@@ -446,8 +456,8 @@ export default function CardCanvas() {
               }
             })
             
-            // Draw selection border and trash icon if selected (only in grab mode)
-            if (currentTool === 'grab' && showFullSelection && minX !== Infinity) {
+            // Draw selection border and trash icon if selected (only in grab mode, not in read-only)
+            if (!readOnly && currentTool === 'grab' && showFullSelection && minX !== Infinity) {
               const padding = 8
               ctx.strokeStyle = '#6a9c89'
               ctx.lineWidth = 2
@@ -692,6 +702,9 @@ export default function CardCanvas() {
   }
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Disable interactions in read-only mode
+    if (readOnly) return
+    
     const coords = getCanvasCoordinates(e)
     if (!coords) return
 
@@ -758,6 +771,8 @@ export default function CardCanvas() {
   }
 
   const handleMouseUp = (e?: React.MouseEvent<HTMLCanvasElement>) => {
+    // Disable interactions in read-only mode
+    if (readOnly) return
     
     if (isDrawing && currentPath.length > 0 && currentTool === 'draw') {
       const face = mode === 'front' ? 'front' : 'back'
@@ -785,6 +800,8 @@ export default function CardCanvas() {
   }
 
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    // Disable interactions in read-only mode
+    if (readOnly) return
     if (e.touches.length > 1) return // Ignore multi-touch
     handleMouseDown(e as any)
   }
