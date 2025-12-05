@@ -215,11 +215,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     ctx.setTransform(1, 0, 0, 1, 0, 0) // Reset transform first
     ctx.scale(dpr, dpr)
     
-    // Initialize background on first init
-    if (needsInit) {
-      ctx.fillStyle = CARD_BACKGROUND_COLOR
-      ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
-    }
+    // Fill background immediately (before any other operations) to prevent white flash
+    ctx.fillStyle = CARD_BACKGROUND_COLOR
+    ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
 
     // Use displayMode (which may lag during flip) to determine which face to show
     const face = displayMode === 'front' ? 'front' : 'back'
