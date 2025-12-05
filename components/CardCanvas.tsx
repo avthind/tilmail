@@ -133,6 +133,32 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     }
   }, [currentTool])
 
+  // Update canvas size on window resize to respect responsive CSS
+  useEffect(() => {
+    const handleResize = () => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      
+      const container = canvas.parentElement
+      const containerRect = container?.getBoundingClientRect()
+      const displayWidth = containerRect?.width || CARD_WIDTH
+      const displayHeight = containerRect?.height || CARD_HEIGHT
+      
+      // Update CSS size to match container
+      canvas.style.width = `${displayWidth}px`
+      canvas.style.height = `${displayHeight}px`
+    }
+
+    // Initial size update after a brief delay to ensure CSS has applied
+    const timeoutId = setTimeout(handleResize, 100)
+    
+    window.addEventListener('resize', handleResize)
+    return () => {
+      clearTimeout(timeoutId)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -163,14 +189,27 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
 
     // Set canvas size accounting for device pixel ratio (for crisp rendering on high-DPI displays)
     const dpr = window.devicePixelRatio || 1
+    
+    // Get the container's computed size (respects CSS media queries)
+    const container = canvas.parentElement
+    const containerRect = container?.getBoundingClientRect()
+    const displayWidth = containerRect?.width || CARD_WIDTH
+    const displayHeight = containerRect?.height || CARD_HEIGHT
+    
     const needsInit = canvas.width !== CARD_WIDTH * dpr || canvas.height !== CARD_HEIGHT * dpr
     if (needsInit) {
-      // Set internal resolution to account for device pixel ratio
+      // Set internal resolution to account for device pixel ratio (always use full size for rendering)
       canvas.width = CARD_WIDTH * dpr
       canvas.height = CARD_HEIGHT * dpr
-      // Set CSS size to display size (not internal resolution)
-      canvas.style.width = `${CARD_WIDTH}px`
-      canvas.style.height = `${CARD_HEIGHT}px`
+      // Set CSS size to match container's display size (respects responsive CSS)
+      canvas.style.width = `${displayWidth}px`
+      canvas.style.height = `${displayHeight}px`
+    } else {
+      // Update CSS size if container size changed (e.g., window resize)
+      if (canvas.style.width !== `${displayWidth}px` || canvas.style.height !== `${displayHeight}px`) {
+        canvas.style.width = `${displayWidth}px`
+        canvas.style.height = `${displayHeight}px`
+      }
     }
     // Always ensure context is scaled (setting canvas.width resets the context, so re-apply scale)
     ctx.setTransform(1, 0, 0, 1, 0, 0) // Reset transform first

@@ -92,3 +92,38 @@
   margin: 0 0 12px 0;
   font-family: 'Nunito', sans-serif;
 }
+
+@media (max-width: 768px) {
+  .stickerPicker {
+    padding: 8px;
+  }
+
+  .stickerGrid {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    max-height: calc(3 * (36px + 6px + 6px));
+  }
+
+  .stickerButton {
+    max-width: 36px;
+    max-height: 36px;
+    padding: 3px;
+  }
+
+  .hint {
+    font-size: 8px;
+    margin: 0 0 10px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .stickerGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+  }
+
+  .stickerButton {
+    max-width: 32px;
+    max-height: 32px;
+  }
+}

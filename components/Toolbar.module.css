@@ -307,14 +307,20 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .rightToolbar {
-    right: 20px;
-    top: auto;
-    bottom: 100px;
-    transform: none;
+    right: auto;
+    left: 50%;
+    top: calc(50% - 232px);
+    bottom: auto;
+    transform: translateX(-50%);
     width: auto;
     border-radius: 2px;
+    padding: 8px 6px;
   }
 
+  .toolbarContent {
+    flex-direction: row;
+    gap: 4px;
+  }
 
   .toolButtons {
     flex-direction: row;
@@ -322,35 +328,64 @@
   }
 
   .toolButton {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .toolButton svg {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
+  }
+
+  .actionButtons {
+    flex-direction: row;
+    margin-top: 0;
+    gap: 4px;
+  }
+
+  .actionButton {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .actionButton svg {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    min-height: 18px;
   }
 
   .toolDrawer {
-    position: fixed;
-    right: 0;
-    left: 0;
-    bottom: 80px;
-    top: auto;
-    width: 100%;
-    max-height: 50vh;
+    position: absolute;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: calc(100% + 8px) !important;
+    bottom: auto;
+    width: calc(100vw - 20px);
+    max-width: 300px;
+    max-height: 40vh;
     border-radius: 2px;
-    border-right: none;
-    border-left: none;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
-
 
   .bottomToolbar {
     left: 50%;
     right: auto;
     transform: translateX(-50%);
-    width: calc(100% - 32px);
+    width: auto;
     min-width: auto;
-    max-width: 500px;
+    max-width: none;
     border-radius: 2px;
-    padding: 14px 20px;
-    bottom: 20px;
+    padding: 8px 6px;
+    top: calc(50% + 180px);
+    bottom: auto;
   }
 
   .bottomToolbarContent {
@@ -365,16 +400,106 @@
   }
 
   .viewButton {
-    flex: 1;
-    padding: 12px 8px;
-    font-size: 13px;
+    flex: none;
+    padding: 0;
+    height: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    width: auto;
+    min-width: 60px;
   }
 
   .sendButton {
-    padding: 12px 20px;
+    padding: 0;
+    height: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 2px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    min-width: 80px;
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rightToolbar {
+    top: calc(50% - 205px);
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 4px;
+  }
+
+  .toolButton {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .toolButton svg {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+  }
+
+  .actionButton {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  .actionButton svg {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+  }
+
+  .toolDrawer {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    top: calc(100% + 8px) !important;
+    max-height: 40vh;
+    max-width: calc(100vw - 16px);
+  }
+
+  .bottomToolbar {
+    width: auto;
+    padding: 6px 4px;
+    top: calc(50% + 150px);
+    bottom: auto;
+  }
+
+  .viewButton {
+    flex: none;
+    padding: 0;
+    height: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    width: auto;
+    min-width: 50px;
+  }
+
+  .sendButton {
+    padding: 0;
+    height: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    min-width: 60px;
   }
 }
