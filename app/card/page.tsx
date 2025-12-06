@@ -17,25 +17,47 @@ function CardViewerContent() {
   useEffect(() => {
     // Check window.location for direct card URLs (e.g., /card/abc123)
     const pathCardId = typeof window !== 'undefined' 
-      ? window.location.pathname.replace('/card/', '').split('/')[0] 
+      ? window.location.pathname.replace('/card', '').replace(/^\//, '').split('/')[0]
       : null
     const id = cardId || pathCardId || ''
     
-    if (id) {
+    if (id && id !== 'card' && id.length > 0) {
+      console.log('Loading card with ID:', id)
+      // Clear existing decorations first
+      useAppStore.setState({ 
+        decorations: { front: [], back: [] },
+        mode: 'front',
+        currentTool: null,
+        selectedDecoration: null
+      })
+      
       loadCard(id)
         .then((data) => {
+          console.log('Card loaded:', data)
           if (data && data.decorations) {
-            useAppStore.setState({ decorations: data.decorations })
+            // Ensure front and back are arrays
+            const normalizedDecorations = {
+              front: Array.isArray(data.decorations.front) ? data.decorations.front : [],
+              back: Array.isArray(data.decorations.back) ? data.decorations.back : []
+            }
+            useAppStore.setState({ decorations: normalizedDecorations })
+            console.log('Decorations set:', normalizedDecorations)
+          } else {
+            console.warn('No decorations in card data')
+            setError('Card has no decorations')
           }
           setLoading(false)
         })
         .catch((err) => {
+          console.error('Error loading card:', err)
           setError('Card not found')
           setLoading(false)
         })
     } else {
       setLoading(false)
-      setError('No card ID provided')
+      if (!id || id === 'card') {
+        setError('No card ID provided')
+      }
     }
   }, [cardId])
 

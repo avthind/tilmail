@@ -94,9 +94,17 @@ export async function loadCard(cardId: string): Promise<CardData | null> {
   if (docSnap.exists()) {
     const data = docSnap.data() as CardData
     // Desanitize decorations to convert back to nested arrays
+    const desanitized = desanitizeFromFirestore(data.decorations) as any
+    
+    // Ensure front and back are always arrays (not objects)
+    const normalizedDecorations: FaceDecorations = {
+      front: Array.isArray(desanitized?.front) ? desanitized.front : (desanitized?.front ? Object.values(desanitized.front) : []),
+      back: Array.isArray(desanitized?.back) ? desanitized.back : (desanitized?.back ? Object.values(desanitized.back) : [])
+    }
+    
     return {
       ...data,
-      decorations: desanitizeFromFirestore(data.decorations) as FaceDecorations
+      decorations: normalizedDecorations
     }
   }
   return null

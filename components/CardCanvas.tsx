@@ -178,6 +178,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const prevModeRef = useRef(mode)
   const prevSelectedDecorationRef = useRef(selectedDecoration)
   const prevToolRef = useRef(currentTool)
+  const isInitialMountRef = useRef(true)
 
   // Draw all decorations on canvas
   useEffect(() => {
@@ -225,19 +226,41 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     const prevFace = prevModeRef.current === 'front' ? 'front' : 'back'
     const prevFaceDecorations = prevDecorationsRef.current[prevFace]
     
-    // If we just finished drawing, the decoration is already on canvas, skip redraw
+    // If we just finished drawing, the decoration is already on canvas
+    // But we still need to redraw to show all decorations properly
     if (justFinishedDrawingRef.current) {
       justFinishedDrawingRef.current = false
-      // Update refs without redrawing
-      prevDecorationsRef.current = decorations
-      prevModeRef.current = mode
-      prevSelectedDecorationRef.current = selectedDecoration
-      return
+      // Continue to redraw to ensure all decorations are visible
     }
 
     // Check if decorations actually changed (more efficient comparison)
     const modeChanged = displayMode !== prevModeRef.current
+    
+    // Force redraw on initial mount or when decorations are loaded (especially in viewer mode)
+    const isInitialMount = isInitialMountRef.current
+    
+    // Check if decorations object reference changed (indicates decorations were loaded/replaced)
+    const decorationsObjectChanged = decorations !== prevDecorationsRef.current
+    
+    // Check if decorations went from empty to loaded (common in viewer mode)
+    // This is critical for viewer mode - when decorations are loaded, we need to redraw
+    const prevFaceWasEmpty = !prevFaceDecorations || prevFaceDecorations.length === 0
+    const faceNowHasDecorations = faceDecorations && faceDecorations.length > 0
+    const decorationsLoaded = prevFaceWasEmpty && faceNowHasDecorations
+    
+    // Also check if the entire decorations object has any decorations now (for both faces)
+    // This catches cases where decorations are loaded but the comparison above might miss it
+    const hasAnyDecorations = (decorations.front && decorations.front.length > 0) || 
+                              (decorations.back && decorations.back.length > 0)
+    const prevHadNoDecorationsAtAll = (!prevDecorationsRef.current.front || prevDecorationsRef.current.front.length === 0) &&
+                                      (!prevDecorationsRef.current.back || prevDecorationsRef.current.back.length === 0)
+    const decorationsJustLoaded = prevHadNoDecorationsAtAll && hasAnyDecorations
+    
     const decorationsChanged = 
+      isInitialMount ||
+      decorationsObjectChanged ||
+      decorationsLoaded ||
+      decorationsJustLoaded ||
       modeChanged ||
       faceDecorations.length !== prevFaceDecorations.length ||
       faceDecorations.some((dec, i) => {
@@ -253,7 +276,12 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         const dataChanged = JSON.stringify(dec.data) !== JSON.stringify(prevDec.data)
         return dataChanged
       })
-
+    
+    // Mark that initial mount is complete after first render
+    if (isInitialMount) {
+      isInitialMountRef.current = false
+    }
+    
     // Check if only selection changed (simple reference/ID comparison)
     // Redraw selection changes if in grab mode or text tool with text selected
     const selectionChanged = 
@@ -297,30 +325,172 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Check if currentTool changed (need to redraw borders when tool changes)
     const toolChanged = currentTool !== prevToolRef.current
     
-    // Skip redraw if nothing changed (but always redraw if tool changed)
-    if (!decorationsChanged && !selectionChanged && !toolChanged) {
-      return
-    }
-
-    // Clear canvas with card background color
-    // Use logical dimensions after context scaling
-    ctx.fillStyle = CARD_BACKGROUND_COLOR
-    ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
-
+    // Check if we're currently drawing (need to redraw to show current path)
+    const isCurrentlyDrawing = isDrawing && currentTool === 'draw' && currentPath.length > 0
+    
+    // Check if we're currently dragging (need to redraw to show moved decoration)
+    const isCurrentlyDragging = isDragging && currentTool === 'grab'
+    
+    // Check if we're editing text (need to redraw to show updated text)
+    const isCurrentlyEditing = editingTextId !== null
+    
     // If flipping, only show white background (hide all decorations)
     if (isFlipping) {
+      // Clear canvas with card background color
+      ctx.fillStyle = CARD_BACKGROUND_COLOR
+      ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
       // Don't update refs during flip - keep previous state
       return
     }
-
-    // Draw all decorations
-    const drawDecorations = async () => {
-      // Re-fill background with card background color
+    
+    // Only clear and redraw everything if decorations actually changed
+    // For selection/tool changes, we'll do incremental updates
+    const needsFullRedraw = decorationsChanged || modeChanged
+    
+    // Track which decorations need incremental updates
+    let idsToUpdate: string[] = []
+    
+    if (needsFullRedraw) {
+      // Clear canvas with card background color
       // Use logical dimensions after context scaling
       ctx.fillStyle = CARD_BACKGROUND_COLOR
       ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+    } else {
+      // For incremental updates (selection/tool changes), only update affected areas
+      // Skip full redraw if nothing significant changed
+      if (!selectionChanged && !toolChanged && !isCurrentlyDrawing && !isCurrentlyDragging && !isCurrentlyEditing) {
+        return
+      }
+      
+      // Helper function to calculate bounding box for a decoration (including selection indicator)
+      const getDecorationBounds = (dec: any, includeSelection: boolean) => {
+        const x = (dec.x + CARD_WIDTH / 2)
+        const y = (dec.y + CARD_HEIGHT / 2)
+        const padding = includeSelection ? 8 : 0
+        
+        if (dec.type === 'sticker') {
+          const scale = dec.data.scale || 0.15
+          const size = 64 * scale
+          return {
+            x: x - size / 2 - padding,
+            y: y - size / 2 - padding,
+            width: size + padding * 2,
+            height: size + padding * 2
+          }
+        } else if (dec.type === 'text') {
+          ctx.font = `${dec.data.fontWeight === 'bold' ? 'bold ' : ''}${dec.data.fontStyle || 'normal'} ${dec.data.fontSize || 24}px ${dec.data.fontFamily || 'Arial, sans-serif'}`
+          const textWidth = ctx.measureText(dec.data.text || '').width
+          const textHeight = dec.data.fontSize || 24
+          return {
+            x: x - textWidth / 2 - padding,
+            y: y - textHeight / 2 - padding,
+            width: textWidth + padding * 2,
+            height: textHeight + padding * 2
+          }
+        } else if (dec.type === 'drawing' && dec.data.paths) {
+          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+          dec.data.paths.forEach((path: number[][]) => {
+            path.forEach((point: number[]) => {
+              const px = point[0] + CARD_WIDTH / 2
+              const py = point[1] + CARD_HEIGHT / 2
+              minX = Math.min(minX, px)
+              minY = Math.min(minY, py)
+              maxX = Math.max(maxX, px)
+              maxY = Math.max(maxY, py)
+            })
+          })
+          if (minX !== Infinity) {
+            return {
+              x: minX - padding,
+              y: minY - padding,
+              width: maxX - minX + padding * 2,
+              height: maxY - minY + padding * 2
+            }
+          }
+        }
+        return null
+      }
+      
+      // Helper function to erase an area by filling with background
+      const eraseArea = (bounds: { x: number, y: number, width: number, height: number }) => {
+        ctx.fillStyle = CARD_BACKGROUND_COLOR
+        ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+      }
+      
+      // Find decorations that need updates
+      idsToUpdate = []
+      
+      // Previous selection that needs to be removed
+      if (prevSelectedDecorationRef.current && prevToolRef.current) {
+        const prevDec = prevFaceDecorations.find(d => d.id === prevSelectedDecorationRef.current!.id)
+        if (prevDec) {
+          const hadIndicator = 
+            (prevToolRef.current === 'grab' && (prevDec.type === 'sticker' || prevDec.type === 'text' || prevDec.type === 'drawing')) ||
+            (prevToolRef.current === 'text' && prevDec.type === 'text')
+          
+          if (hadIndicator) {
+            idsToUpdate.push(prevDec.id)
+            // Erase the area where the old selection indicator was
+            const bounds = getDecorationBounds(prevDec, true)
+            if (bounds) {
+              eraseArea(bounds)
+            }
+          }
+        }
+      }
+      
+      // Current selection that needs to be drawn
+      if (selectedDecoration && currentTool) {
+        const currentDec = faceDecorations.find(d => d.id === selectedDecoration.id)
+        if (currentDec) {
+          const needsIndicator = 
+            (currentTool === 'grab' && (currentDec.type === 'sticker' || currentDec.type === 'text' || currentDec.type === 'drawing')) ||
+            (currentTool === 'text' && currentDec.type === 'text')
+          
+          if (needsIndicator && !idsToUpdate.includes(currentDec.id)) {
+            idsToUpdate.push(currentDec.id)
+            // Erase the area first
+            const bounds = getDecorationBounds(currentDec, true)
+            if (bounds) {
+              eraseArea(bounds)
+            }
+          }
+        }
+      }
+      
+      // If dragging, update the decoration being moved
+      if (isDragging && selectedDecoration) {
+        const draggedDec = faceDecorations.find(d => d.id === selectedDecoration.id)
+        if (draggedDec && !idsToUpdate.includes(draggedDec.id)) {
+          idsToUpdate.push(draggedDec.id)
+          // Erase old position (from previous state)
+          const prevDec = prevFaceDecorations.find(d => d.id === selectedDecoration.id)
+          if (prevDec) {
+            const bounds = getDecorationBounds(prevDec, true)
+            if (bounds) {
+              eraseArea(bounds)
+            }
+          }
+        }
+      }
+    }
 
-      for (const decoration of faceDecorations) {
+    // Draw all decorations
+    const drawDecorations = async (onlyChanged?: { face: 'front' | 'back', ids: string[] }) => {
+      // Only clear background if doing full redraw
+      if (needsFullRedraw || !onlyChanged) {
+        // Re-fill background with card background color
+        // Use logical dimensions after context scaling
+        ctx.fillStyle = CARD_BACKGROUND_COLOR
+        ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+      }
+
+      // If onlyChanged is specified, only redraw those specific decorations
+      const decorationsToDraw = onlyChanged 
+        ? faceDecorations.filter(d => onlyChanged.ids.includes(d.id))
+        : faceDecorations
+
+      for (const decoration of decorationsToDraw) {
         // Show selection indicators only when the appropriate tool is active
         const isSelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
         // Only show grab mode selection when grab tool is active
@@ -511,18 +681,44 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         }
       }
 
-      // Don't draw current path here - it's drawn directly in handleMouseMove
-      // This prevents flashing/vibrating while drawing
     }
 
-    drawDecorations()
+    // Draw decorations (full redraw or incremental)
+    ;(async () => {
+      if (needsFullRedraw) {
+        // Full redraw - draw all decorations
+        await drawDecorations()
+      } else if (idsToUpdate.length > 0) {
+        // Incremental update - only redraw decorations that need updates
+        // Areas have already been erased above
+        await drawDecorations({ face, ids: idsToUpdate })
+      } else if (faceNowHasDecorations && (prevFaceWasEmpty || isInitialMount)) {
+        // If decorations exist but weren't there before, always draw them
+        // This is critical for viewer mode - ensures decorations show immediately on load
+        await drawDecorations()
+      }
+      
+      // Draw current path if drawing (after all decorations are drawn)
+      if (isDrawing && currentPath.length > 1 && currentTool === 'draw') {
+        ctx.strokeStyle = drawSettings.color
+        ctx.lineWidth = drawSettings.lineWidth
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.beginPath()
+        ctx.moveTo(currentPath[0].x, currentPath[0].y)
+        for (let i = 1; i < currentPath.length; i++) {
+          ctx.lineTo(currentPath[i].x, currentPath[i].y)
+        }
+        ctx.stroke()
+      }
+    })()
     
     // Update refs after redraw
     prevDecorationsRef.current = decorations
     prevModeRef.current = displayMode
     prevSelectedDecorationRef.current = selectedDecoration
     prevToolRef.current = currentTool
-  }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool, editingTextId])
+  }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool, editingTextId, isDrawing, currentPath, isDragging, editingTextValue])
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
@@ -758,24 +954,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     }
 
     if (isDrawing && currentTool === 'draw') {
-      // Draw line segment directly on canvas for real-time feedback
-      const canvas = canvasRef.current
-      if (canvas && currentPath.length > 0) {
-        const ctx = canvas.getContext('2d')
-        if (ctx) {
-          ctx.strokeStyle = drawSettings.color
-          ctx.lineWidth = drawSettings.lineWidth
-          ctx.lineCap = 'round'
-          ctx.lineJoin = 'round'
-          ctx.beginPath()
-          ctx.moveTo(currentPath[currentPath.length - 1].x, currentPath[currentPath.length - 1].y)
-          ctx.lineTo(coords.canvasX, coords.canvasY)
-          ctx.stroke()
-        }
-      }
-      
       // Add point to current path state
       setCurrentPath((prev) => [...prev, { x: coords.canvasX, y: coords.canvasY }])
+      // Trigger redraw to show all decorations + current drawing path
+      // The redraw will handle drawing the current path along with all decorations
       return
     }
 

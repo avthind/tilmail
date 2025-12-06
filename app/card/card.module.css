@@ -52,19 +52,19 @@
 }
 
 .actionButtons {
-  position: absolute;
-  bottom: 20px;
+  position: fixed;
+  top: calc(40% + 250px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   gap: 12px;
   align-items: center;
-  z-index: 100;
+  z-index: 1000;
 }
 
 @media (max-width: 768px) {
   .actionButtons {
-    bottom: 80px;
+    top: calc(50% + 180px);
     flex-direction: column;
     gap: 8px;
     width: calc(100% - 20px);
@@ -74,7 +74,7 @@
 
 @media (max-width: 480px) {
   .actionButtons {
-    bottom: 70px;
+    top: calc(50% + 150px);
     width: calc(100% - 16px);
     gap: 6px;
   }
@@ -82,36 +82,57 @@
 
 .flipButton,
 .sendButton {
-  padding: 10px 20px;
-  background: rgba(196, 218, 210, 0.2);
-  border: 1px solid rgba(106, 156, 137, 0.4);
+  padding: 8px 16px;
+  min-height: 36px;
+  height: 36px;
+  min-width: 126px;
+  width: 126px;
   border-radius: 2px;
-  color: var(--pale-mint);
-  font-size: 12px;
-  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 13px;
+  font-family: 'Nunito', sans-serif;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  width: 100%;
   justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.flipButton {
+  background: rgba(196, 218, 210, 0.2);
+  border: 1px solid rgba(106, 156, 137, 0.4);
+  color: var(--pale-mint);
+}
+
+.sendButton {
+  background: var(--light-mint);
+  color: var(--dark-teal);
+  border: 1px solid var(--light-mint);
+  font-weight: 700;
+  text-decoration: none;
 }
 
 @media (max-width: 768px) {
   .flipButton,
   .sendButton {
-    padding: 12px 16px;
+    padding: 8px 16px;
     font-size: 13px;
   }
 }
 
-.flipButton:hover,
-.sendButton:hover {
+.flipButton:hover {
   background: rgba(106, 156, 137, 0.3);
   border-color: var(--medium-teal);
   color: var(--pure-white);
+  transform: translateY(-2px);
+}
+
+.sendButton:hover {
+  background: var(--pale-mint);
+  border-color: var(--light-mint);
+  color: var(--dark-teal);
   transform: translateY(-2px);
 }
 
@@ -148,6 +169,10 @@
     left: 10px;
     font-size: 8px;
     padding: 4px 8px;
+    line-height: 1.2;
+    height: 20px;
+    display: flex;
+    align-items: center;
   }
 }
 
@@ -159,28 +184,6 @@
   gap: 4px;
   align-items: center;
   z-index: 100;
-}
-
-@media (max-width: 768px) {
-  .socialLinks {
-    bottom: 10px;
-    right: 10px;
-    gap: 3px;
-  }
-  
-  .socialLinks a {
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-    min-height: 24px;
-  }
-  
-  .socialLinks svg {
-    width: 12px;
-    height: 12px;
-    min-width: 12px;
-    min-height: 12px;
-  }
 }
 
 .socialLinks a {
@@ -198,6 +201,28 @@
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   text-decoration: none;
   box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .socialLinks {
+    bottom: 10px;
+    right: 10px;
+    gap: 3px;
+  }
+  
+  .socialLinks a {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+  }
+  
+  .socialLinks svg {
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+    min-height: 10px;
+  }
 }
 
 .socialLinks a:hover {
