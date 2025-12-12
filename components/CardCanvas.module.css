@@ -14,20 +14,20 @@
 @media (max-width: 768px) {
   .cardCanvasContainer {
     top: 50%;
-    width: min(75vw, 360px);
-    height: min(50vw, 240px);
-    max-width: 360px;
-    max-height: 240px;
+    width: min(80vw, 400px);
+    height: min(53.33vw, 267px);
+    max-width: 400px;
+    max-height: 267px;
   }
 }
 
 @media (max-width: 480px) {
   .cardCanvasContainer {
     top: 50%;
-    width: min(80vw, 320px);
-    height: min(53.33vw, 213px);
-    max-width: 320px;
-    max-height: 213px;
+    width: min(85vw, 360px);
+    height: min(56.67vw, 240px);
+    max-width: 360px;
+    max-height: 240px;
   }
 }
 

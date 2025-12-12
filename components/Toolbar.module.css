@@ -337,7 +337,7 @@
   .rightToolbar {
     right: auto;
     left: 50%;
-    top: calc(50% - 232px);
+    top: calc(50% - 170px - 52px);
     bottom: auto;
     transform: translateX(-50%);
     width: 188px;
@@ -422,7 +422,7 @@
     max-width: none;
     border-radius: 2px;
     padding: 8px;
-    top: calc(50% + 180px);
+    top: calc(50% + 170px);
     bottom: auto;
   }
 
@@ -466,7 +466,7 @@
 
 @media (max-width: 480px) {
   .rightToolbar {
-    top: calc(50% - 205px);
+    top: calc(50% - 150px - 44px);
     right: auto;
     left: 50%;
     transform: translateX(-50%);
