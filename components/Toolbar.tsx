@@ -19,28 +19,109 @@ export default function Toolbar() {
     setSelectedDecoration,
     decorations,
     removeDecoration,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    copyDecoration,
+    pasteDecoration,
+    duplicateDecoration,
   } = useAppStore()
 
-  const handleUndo = () => {
-    // Only delete if in grab mode and has selected decoration
-    if (currentTool === 'grab' && selectedDecoration) {
+  const handleDelete = () => {
+    // Delete selected decoration (works globally, not just in grab mode)
+    if (selectedDecoration) {
       removeDecoration(selectedDecoration.face, selectedDecoration.id)
       setSelectedDecoration(null)
     }
   }
 
-  // ESC key to exit active modes and deselect stickers/decorations
+  // Keyboard shortcuts
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger shortcuts when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        // Allow Ctrl+Z, Ctrl+C, Ctrl+V, Ctrl+D in text inputs
+        if (e.key === 'z' || e.key === 'c' || e.key === 'v' || e.key === 'd') {
+          if (e.ctrlKey || e.metaKey) {
+            return // Let browser handle it
+          }
+        } else {
+          return // Don't interfere with typing
+        }
+      }
+
+      // Escape - Deselect and close tools
       if (e.key === 'Escape') {
         setSelectedSticker(null)
         setSelectedDecoration(null)
         setTool(null)
+        return
+      }
+
+      // Delete/Backspace - Delete selected item
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDecoration) {
+        e.preventDefault()
+        handleDelete()
+        return
+      }
+
+      // Ctrl+Z / Cmd+Z - Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        if (canUndo()) {
+          undo()
+        }
+        return
+      }
+
+      // Ctrl+Shift+Z / Cmd+Shift+Z - Redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault()
+        if (canRedo()) {
+          redo()
+        }
+        return
+      }
+
+      // Ctrl+Y / Cmd+Y - Redo (alternative)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault()
+        if (canRedo()) {
+          redo()
+        }
+        return
+      }
+
+      // Ctrl+C / Cmd+C - Copy
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault()
+        if (selectedDecoration) {
+          copyDecoration()
+        }
+        return
+      }
+
+      // Ctrl+V / Cmd+V - Paste
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault()
+        pasteDecoration()
+        return
+      }
+
+      // Ctrl+D / Cmd+D - Duplicate
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault()
+        if (selectedDecoration) {
+          duplicateDecoration()
+        }
+        return
       }
     }
-    window.addEventListener('keydown', handleEsc)
-    return () => window.removeEventListener('keydown', handleEsc)
-  }, [setTool, setSelectedSticker, setSelectedDecoration])
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [setTool, setSelectedSticker, setSelectedDecoration, selectedDecoration, canUndo, canRedo, undo, redo, copyDecoration, pasteDecoration, duplicateDecoration])
 
   // Click outside to close drawers (but not on canvas)
   useEffect(() => {
@@ -147,10 +228,34 @@ export default function Toolbar() {
             </button>
             <button
               className={styles.actionButton}
-              onClick={handleUndo}
-              disabled={!(currentTool === 'grab' && selectedDecoration)}
+              onClick={undo}
+              disabled={!canUndo()}
+              aria-label="Undo"
+              title="Undo (Ctrl+Z)"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 7v6h6"></path>
+                <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+              </svg>
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={redo}
+              disabled={!canRedo()}
+              aria-label="Redo"
+              title="Redo (Ctrl+Shift+Z)"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 7v6h-6"></path>
+                <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
+              </svg>
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={handleDelete}
+              disabled={!selectedDecoration}
               aria-label="Delete selected decoration"
-              title="Delete selected decoration"
+              title="Delete (Delete/Backspace)"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
