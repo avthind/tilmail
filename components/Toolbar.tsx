@@ -100,8 +100,8 @@ export default function Toolbar() {
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                <polyline points="21 15 16 10 5 21"></polyline>
+                <circle cx="9" cy="9" r="2"></circle>
+                <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
               </svg>
             </button>
             <button
@@ -136,11 +136,13 @@ export default function Toolbar() {
               aria-label="Grab and move"
               title="Grab and move"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 11.5V9a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2.5"></path>
-                <path d="M14 10V8a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
-                <path d="M10 9.5V7a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2.5"></path>
-                <path d="M6 14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2.5"></path>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="5 9 2 12 5 15"></polyline>
+                <polyline points="9 5 12 2 15 5"></polyline>
+                <polyline points="15 19 12 22 9 19"></polyline>
+                <polyline points="19 9 22 12 19 15"></polyline>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="12" y1="2" x2="12" y2="22"></line>
               </svg>
             </button>
             <button
