@@ -1,9 +1,6 @@
-add stickers
-add sticker categories
+add stickers/categories
 
-text tool double click edit mode improvement
-text tool box stays on switching tools
+tools working/fixes
 
-mobile view editor mode fixes
-
-viewer mode load fix
+viewer mode working/fixes
+^add sign up

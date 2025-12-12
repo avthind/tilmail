@@ -1,264 +1,34 @@
-# TILMail
+# TILmail
 
-A 3D interactive envelope decoration application where users can create and share personalized digital postcards.
-
-## Tech Stack
-
-- **Frontend**: Next.js 14 (React) + CSS Modules (no Tailwind). Uses react-three-fiber + drei for 3D.
-- **Backend**: Firebase (Firestore + Storage).
-- **Sharing**: Shareable links via Firestore ID with native sharing and social media integration.
+A web application for creating and sharing digital postcards. Create personalized cards with stickers, drawings, and text, then share them with friends and family via email or SMS.
 
 ## Features
 
-- Blank white background, centered rotatable 3D envelope (touch + mouse drag, full 360°).
-- Side/bottom toolbar with:
-  - Stickers (preloaded PNGs)
-  - Draggable text box tool (editable)
-  - Minimal pen/crayon drawing (small canvas overlay with undo)
-- Ability to decorate outside front/back of envelope (apply stickers/text/draw).
-- Animated open envelope (3D) revealing a postcard card that can be decorated with same tools.
-- Close animation: postcard slides in, envelope closes.
-- Save state (JSON) and generate a public shareable link. Option to send link via phone/email.
-- Quick signup: one-step — user supplies phone OR email only (no password). Persist identifier to session/localStorage.
-- Minimal, accessible UI, responsive, keyboard accessible where possible.
+- **Card Editor**: Create custom postcards with:
+  - Sticker library for decorating cards
+  - Drawing tools for freehand artwork
+  - Text tool for adding messages
+  - Front and back card sides
+  
+- **Card Viewer**: View shared cards in a read-only mode with flip functionality
 
-## Project Structure
+- **Sharing**: Send cards via:
+  - Shareable links
 
-```
-tilmail/
-├── app/                    # Next.js app directory
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Main editor page
-│   └── card/[id]/         # Public viewer page
-├── components/            # React components
-│   ├── EnvelopeScene.tsx  # Main 3D scene
-│   ├── Envelope.tsx       # 3D envelope mesh
-│   ├── Postcard.tsx       # 3D postcard mesh
-│   ├── EnvelopeFace.tsx   # Face decoration renderer
-│   ├── EnvelopeClickHandler.tsx # Click/touch handler
-│   ├── Toolbar.tsx        # Main toolbar
-│   ├── StickerPicker.tsx # Sticker selection
-│   ├── TextTool.tsx       # Text tool
-│   ├── DrawTool.tsx       # Drawing tool
-│   └── SendModal.tsx      # Send/share modal
-├── store/                 # State management
-│   └── appStore.ts        # Zustand store
-├── lib/                   # Utilities
-│   └── firebase.ts        # Firebase config & functions
-└── public/                # Static assets
-    └── stickers/          # Sticker images
-```
+## Tech Stack
 
-## Setup Instructions
-
-### Prerequisites
-
-- Node.js 18+ and npm/yarn
-- Firebase project (for production)
-
-### Installation
-
-1. **Clone and install dependencies:**
-   ```bash
-   cd tilmail
-   npm install
-   ```
-
-2. **Set up environment variables:**
-   Create a `.env.local` file in the root directory:
-   ```env
-   NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your-sender-id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
-   ```
-
-3. **Add sticker images (optional):**
-   Place PNG sticker images in `public/stickers/`:
-   - `heart.png`
-   - `star.png`
-   - `smile.png`
-   - `flower.png`
-   - `balloon.png`
-
-   The app will work without these (using placeholders), but stickers will display better with actual images.
-
-4. **Run development server:**
-   ```bash
-   npm run dev
-   ```
-
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Firebase Setup
-
-1. **Create a Firebase project:**
-   - Go to [Firebase Console](https://console.firebase.google.com/)
-   - Create a new project
-   - Enable Firestore Database
-   - Enable Storage
-
-2. **Get Firebase config:**
-   - Go to Project Settings > General
-   - Scroll to "Your apps" and add a web app
-   - Copy the config values to `.env.local`
-
-3. **Set up Firestore rules:**
-   ```javascript
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /cards/{cardId} {
-         allow read: if true;  // Public read
-         allow write: if true;  // Public write (restrict in production)
-       }
-     }
-   }
-   ```
-
-4. **Set up Storage rules:**
-   ```javascript
-   rules_version = '2';
-   service firebase.storage {
-     match /b/{bucket}/o {
-       match /images/{allPaths=**} {
-         allow read: if true;
-         allow write: if true;  // Restrict in production
-       }
-     }
-   }
-   ```
-
-## Usage
-
-### Creating a Card
-
-1. **Decorate the envelope front:**
-   - Select "Front" mode
-   - Use Sticker, Text, or Draw tools
-   - Click on the envelope to place decorations
-
-2. **Decorate the envelope back:**
-   - Select "Back" mode
-   - Add decorations as above
-
-3. **Open and decorate the postcard:**
-   - Click "Open" to open the envelope
-   - Select "Card" mode
-   - Decorate the postcard
-
-4. **Save and share:**
-   - Click "Save" to save your design
-   - Click "Send" to generate a shareable link
-
-### Viewing a Shared Card
-
-Visit `/card/[id]` where `[id]` is the card ID from the share link. The envelope will automatically open to show the postcard.
-
-## Deployment
-
-### Vercel (Recommended for Next.js)
-
-1. **Push code to GitHub:**
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git remote add origin <your-repo-url>
-   git push -u origin main
-   ```
-
-2. **Import project in Vercel:**
-   - Go to [Vercel](https://vercel.com/)
-   - Click "New Project"
-   - Import your GitHub repository
-   - Add environment variables from `.env.local`
-   - Deploy
-
-3. **Configure environment variables in Vercel dashboard:**
-   - Add all `NEXT_PUBLIC_*` Firebase variables
-
-### Firebase Hosting (Static Export)
-
-For static export, you'll need to modify `next.config.js`:
-
-1. **Update next.config.js:**
-   ```javascript
-   const nextConfig = {
-     reactStrictMode: true,
-     output: 'export',
-     images: {
-       unoptimized: true,
-     },
-   }
-   ```
-
-2. **Install Firebase CLI:**
-   ```bash
-   npm install -g firebase-tools
-   ```
-
-3. **Login to Firebase:**
-   ```bash
-   firebase login
-   ```
-
-4. **Initialize Firebase:**
-   ```bash
-   firebase init hosting
-   ```
-   - Select your Firebase project
-   - Set public directory to `out`
-   - Configure as single-page app: Yes
-   - Set up automatic builds: No
-
-5. **Build and deploy:**
-   ```bash
-   npm run build
-   firebase deploy --only hosting
-   ```
-
-   **Note:** Static export works well for this app since it uses Firebase directly from the client.
-
-## Development
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-
-### Key Components
-
-- **EnvelopeScene**: Main 3D scene with camera and controls
-- **Envelope**: 3D envelope mesh with animated lid
-- **Postcard**: 3D postcard that slides out when envelope opens
-- **EnvelopeFace**: Renders decorations on envelope/postcard faces using canvas textures
-- **Toolbar**: Main UI for tools and actions
-- **StickerPicker/TextTool/DrawTool**: Individual decoration tools
-
-## Constraints
-
-- White background, minimal aesthetic
-- No Tailwind CSS
-- CSS Modules for styling
-- Mobile-friendly touch gestures
-- react-three-fiber for all 3D rendering
-- Canvas textures for decorations mapped onto 3D meshes
-
-## Future Enhancements
-
-- Drag-and-drop sticker placement
-- Text editing on 3D surface
-- More sticker options
-- Export as image
-- User accounts and saved designs
-- Animation previews
-- Sound effects
+- **Framework**: Next.js 14
+- **Language**: TypeScript
+- **UI**: React 18
+- **3D Graphics**: Three.js with React Three Fiber
+- **State Management**: Zustand
+- **Backend**: Firebase (Firestore, Storage)
 
 ## License
 
-MIT
+Private project - All rights reserved
+
+## Attribution
+
+Brought to you by [theinvitelab.com](https://theinvitelab.com)
+
