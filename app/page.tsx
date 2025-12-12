@@ -137,7 +137,7 @@ export default function Home() {
         <div className={cardStyles.container}>
           <div className={cardStyles.error}>{cardError}</div>
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <a href="/" style={{ color: 'var(--pale-mint)', textDecoration: 'underline' }}>
+            <a href="/" style={{ color: 'var(--dark-teal)', textDecoration: 'underline' }}>
               Go to Home
             </a>
           </div>
@@ -149,7 +149,7 @@ export default function Home() {
     const hasDecorations = decorations && (decorations.front?.length > 0 || decorations.back?.length > 0)
     
     return (
-      <div className={cardStyles.container} style={{ minHeight: '100vh', background: '#000000' }}>
+      <div className={cardStyles.container} style={{ minHeight: '100vh', background: 'var(--pale-mint)' }}>
         {/* Debug info - remove in production */}
         {process.env.NODE_ENV === 'development' && (
           <div style={{ 
