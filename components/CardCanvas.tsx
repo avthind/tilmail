@@ -989,27 +989,128 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     }
   }
 
+  // Smooth path using moving average algorithm
+  const smoothPath = (points: { x: number; y: number }[], smoothing: number): { x: number; y: number }[] => {
+    // If no smoothing or too few points, return original
+    if (points.length < 2 || smoothing === 0) return points
+    
+    // Convert smoothing (0-100) to window size (1-10)
+    const windowSize = Math.max(1, Math.min(10, Math.floor(smoothing / 10)))
+    const smoothed: { x: number; y: number }[] = []
+    
+    for (let i = 0; i < points.length; i++) {
+      let sumX = 0
+      let sumY = 0
+      let count = 0
+      
+      // Average points within window
+      for (let j = Math.max(0, i - windowSize); j <= Math.min(points.length - 1, i + windowSize); j++) {
+        sumX += points[j].x
+        sumY += points[j].y
+        count++
+      }
+      
+      // Ensure we have valid coordinates
+      if (count > 0 && isFinite(sumX) && isFinite(sumY)) {
+        smoothed.push({
+          x: sumX / count,
+          y: sumY / count,
+        })
+      } else {
+        // Fallback to original point if smoothing produces invalid result
+        smoothed.push(points[i])
+      }
+    }
+    
+    // Ensure we have at least 2 points
+    return smoothed.length >= 2 ? smoothed : points
+  }
+
   const handleMouseUp = (e?: React.MouseEvent<HTMLCanvasElement>) => {
     // Disable interactions in read-only mode
     if (readOnly) return
     
     if (isDrawing && currentPath.length > 0 && currentTool === 'draw') {
       const face = mode === 'front' ? 'front' : 'back'
-      // Mark that we just finished drawing to skip redraw
-      justFinishedDrawingRef.current = true
-      addDecoration(face, {
-        type: 'drawing',
-        id: `drawing-${Date.now()}`,
-        x: 0,
-        y: 0,
-        data: {
-          paths: [currentPath.map(p => [p.x - CARD_WIDTH / 2, p.y - CARD_HEIGHT / 2])],
-          color: drawSettings.color,
-          lineWidth: drawSettings.lineWidth,
-        },
-      })
+      
+      // Apply smoothing to path before saving
+      const smoothedPath = smoothPath(currentPath, drawSettings.smoothing || 0)
+      
+      // Use smoothed path if valid, otherwise fall back to original
+      const pathToSave = smoothedPath.length >= 2 ? smoothedPath : currentPath
+      
+      // Ensure we have at least 2 points for a valid path
+      if (pathToSave.length >= 2) {
+        // Convert canvas coordinates to card coordinates and ensure they're valid
+        const cardPath = pathToSave
+          .map(p => {
+            // Ensure coordinates are valid numbers
+            if (!isFinite(p.x) || !isFinite(p.y)) {
+              return null
+            }
+            // Clamp coordinates to valid canvas bounds
+            const clampedX = Math.max(0, Math.min(CARD_WIDTH, p.x))
+            const clampedY = Math.max(0, Math.min(CARD_HEIGHT, p.y))
+            // Convert to card coordinate system (centered at 0,0)
+            return [clampedX - CARD_WIDTH / 2, clampedY - CARD_HEIGHT / 2]
+          })
+          .filter((point): point is number[] => {
+            // Remove null/invalid points and duplicate consecutive points
+            if (point === null) return false
+            return true
+          })
+          .filter((point, index, arr) => {
+            // Remove duplicate consecutive points
+            if (index === 0) return true
+            const prev = arr[index - 1]
+            return point[0] !== prev[0] || point[1] !== prev[1]
+          })
+        
+        // Only save if we still have at least 2 points after filtering
+        if (cardPath.length >= 2) {
+          // Draw the saved decoration directly on canvas immediately (no redraw needed)
+          // This keeps the drawing visible without clearing and redrawing everything
+          const canvas = canvasRef.current
+          if (canvas) {
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              // Draw the saved path directly onto the canvas
+              ctx.strokeStyle = drawSettings.color
+              ctx.lineWidth = drawSettings.lineWidth
+              ctx.lineCap = 'round'
+              ctx.lineJoin = 'round'
+              ctx.beginPath()
+              
+              const startX = cardPath[0][0] + CARD_WIDTH / 2
+              const startY = cardPath[0][1] + CARD_HEIGHT / 2
+              ctx.moveTo(startX, startY)
+              
+              for (let i = 1; i < cardPath.length; i++) {
+                const x = cardPath[i][0] + CARD_WIDTH / 2
+                const y = cardPath[i][1] + CARD_HEIGHT / 2
+                ctx.lineTo(x, y)
+              }
+              ctx.stroke()
+            }
+          }
+          
+          // Each stroke is saved as a separate decoration for individual undo
+          addDecoration(face, {
+            type: 'drawing',
+            id: `drawing-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // More unique ID
+            x: 0,
+            y: 0,
+            data: {
+              paths: [cardPath],
+              color: drawSettings.color,
+              lineWidth: drawSettings.lineWidth,
+            },
+          })
+        }
+      }
+      
+      // Clear current path after saving (the drawing is now saved as decoration)
       setCurrentPath([])
-      // Don't trigger redraw - the drawing is already on the canvas
     }
     setIsDrawing(false)
     setIsDragging(false)

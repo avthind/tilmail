@@ -175,8 +175,8 @@
   position: absolute;
   left: calc(100% + 16px);
   top: 0;
-  width: 218px;
-  min-width: 218px;
+  width: fit-content;
+  min-width: 220px;
   max-width: calc(100vw - 100px);
   max-height: 90vh;
   background: rgba(22, 66, 60, 0.95);
@@ -406,10 +406,10 @@
     transform: translateX(-50%);
     top: auto !important;
     bottom: calc(100% + 8px) !important;
-    width: 300px;
-    min-width: 300px;
+    width: fit-content;
+    min-width: 200px;
     max-width: calc(100vw - 20px);
-    max-height: 40vh;
+    max-height: 50vh;
     border-radius: 2px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
@@ -514,10 +514,10 @@
     transform: translateX(-50%);
     top: auto !important;
     bottom: calc(100% + 8px) !important;
-    width: 270px;
-    min-width: 270px;
-    max-height: 40vh;
+    width: fit-content;
+    min-width: 180px;
     max-width: calc(100vw - 16px);
+    max-height: 50vh;
   }
 
   .bottomToolbar {

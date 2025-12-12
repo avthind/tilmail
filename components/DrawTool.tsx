@@ -22,11 +22,19 @@ export default function DrawTool() {
   const { drawSettings, setDrawSettings } = useAppStore()
   const [color, setColor] = useState(drawSettings.color)
   const [lineWidth, setLineWidth] = useState(drawSettings.lineWidth)
+  const [smoothing, setSmoothing] = useState(drawSettings.smoothing ?? 50)
   
   // Update store when settings change
   useEffect(() => {
-    setDrawSettings({ color, lineWidth })
-  }, [color, lineWidth, setDrawSettings])
+    setDrawSettings({ color, lineWidth, smoothing })
+  }, [color, lineWidth, smoothing, setDrawSettings])
+  
+  // Sync with store when it changes externally
+  useEffect(() => {
+    setColor(drawSettings.color)
+    setLineWidth(drawSettings.lineWidth)
+    setSmoothing(drawSettings.smoothing ?? 50)
+  }, [drawSettings])
 
   return (
     <div className={styles.drawTool}>
@@ -59,6 +67,21 @@ export default function DrawTool() {
             </svg>
           </button>
         ))}
+      </div>
+      <div className={styles.smoothingControl}>
+        <label className={styles.smoothingLabel}>
+          Smoothing: {smoothing}%
+        </label>
+        <input
+          type="range"
+          min="0"
+          max="100"
+          value={smoothing}
+          onChange={(e) => setSmoothing(Number(e.target.value))}
+          className={styles.smoothingSlider}
+          aria-label="Line smoothing"
+          title="Adjust line smoothing (0% = no smoothing, 100% = maximum smoothing)"
+        />
       </div>
     </div>
   )

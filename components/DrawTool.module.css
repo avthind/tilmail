@@ -75,6 +75,68 @@
   font-family: 'Nunito', sans-serif;
 }
 
+.smoothingControl {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.smoothingLabel {
+  font-size: 10px;
+  color: var(--light-mint);
+  font-family: 'Nunito', sans-serif;
+  text-align: center;
+}
+
+.smoothingSlider {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(196, 218, 210, 0.2);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.smoothingSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--medium-teal);
+  cursor: pointer;
+  border: 2px solid var(--dark-teal);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.smoothingSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--medium-teal);
+  cursor: pointer;
+  border: 2px solid var(--dark-teal);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.smoothingSlider:hover {
+  background: rgba(106, 156, 137, 0.3);
+}
+
+.smoothingSlider::-webkit-slider-thumb:hover {
+  background: var(--light-mint);
+  transform: scale(1.1);
+}
+
+.smoothingSlider::-moz-range-thumb:hover {
+  background: var(--light-mint);
+  transform: scale(1.1);
+}
+
 @media (max-width: 768px) {
   .drawTool {
     padding: 8px;

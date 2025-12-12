@@ -32,6 +32,7 @@ interface AppState {
   drawSettings: {
     color: string
     lineWidth: number
+    smoothing: number // 0-100, 0 = no smoothing, 100 = maximum smoothing
   }
   textSettings: {
     fontFamily: string
@@ -48,7 +49,7 @@ interface AppState {
   setTool: (tool: 'sticker' | 'text' | 'draw' | 'grab' | null) => void
   setSelectedSticker: (sticker: string | null) => void
   setSelectedDecoration: (decoration: { face: 'front' | 'back', id: string } | null) => void
-  setDrawSettings: (settings: { color: string; lineWidth: number }) => void
+  setDrawSettings: (settings: { color: string; lineWidth: number; smoothing?: number }) => void
   setTextSettings: (settings: { fontFamily: string; fontSize: number; color: string; fontWeight?: string; textDecoration?: string }) => void
   addDecoration: (face: 'front' | 'back', decoration: Decoration) => void
   removeDecoration: (face: 'front' | 'back', id: string) => void
@@ -85,6 +86,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   drawSettings: {
     color: '#4A4A4A', // Dark gray
     lineWidth: 4,
+    smoothing: 50, // Default medium smoothing
   },
   textSettings: {
     fontFamily: 'Arial, sans-serif',
@@ -100,7 +102,9 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTool: (tool) => set({ currentTool: tool }),
   setSelectedSticker: (sticker) => set({ selectedSticker: sticker }),
   setSelectedDecoration: (decoration) => set({ selectedDecoration: decoration }),
-  setDrawSettings: (settings) => set({ drawSettings: settings }),
+  setDrawSettings: (settings) => set((state) => ({ 
+    drawSettings: { ...state.drawSettings, ...settings }
+  })),
   setTextSettings: (settings) => set({ textSettings: settings }),
   addDecoration: (face, decoration) => {
     const state = get()
