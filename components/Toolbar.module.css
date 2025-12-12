@@ -339,19 +339,25 @@
     top: calc(50% - 232px);
     bottom: auto;
     transform: translateX(-50%);
-    width: auto;
+    width: 188px;
+    height: 52px;
+    min-width: 188px;
+    min-height: 52px;
     border-radius: 2px;
-    padding: 8px 6px;
+    padding: 8px;
   }
 
   .toolbarContent {
     flex-direction: row;
     gap: 4px;
+    justify-content: center;
+    align-items: center;
   }
 
   .toolButtons {
     flex-direction: row;
     gap: 4px;
+    width: auto;
   }
 
   .toolButton {
@@ -372,6 +378,7 @@
     flex-direction: row;
     margin-top: 0;
     gap: 4px;
+    width: auto;
   }
 
   .actionButton {
@@ -406,18 +413,20 @@
     left: 50%;
     right: auto;
     transform: translateX(-50%);
-    width: auto;
-    min-width: auto;
+    width: 188px;
+    height: 52px;
+    min-width: 188px;
+    min-height: 52px;
     max-width: none;
     border-radius: 2px;
-    padding: 8px 6px;
+    padding: 8px;
     top: calc(50% + 180px);
     bottom: auto;
   }
 
   .bottomToolbarContent {
     flex-direction: row;
-    gap: 8px;
+    gap: 4px;
   }
 
   .viewButtons {
@@ -449,7 +458,7 @@
     border-radius: 2px;
     font-size: 13px;
     font-weight: 600;
-    min-width: 60px;
+    min-width: 68px;
   }
 }
 
@@ -459,7 +468,11 @@
     right: auto;
     left: 50%;
     transform: translateX(-50%);
-    padding: 6px 4px;
+    width: 188px;
+    height: 44px;
+    min-width: 188px;
+    min-height: 44px;
+    padding: 6px;
   }
 
   .toolButton {
@@ -500,8 +513,11 @@
   }
 
   .bottomToolbar {
-    width: auto;
-    padding: 6px 4px;
+    width: 188px;
+    height: 44px;
+    min-width: 188px;
+    min-height: 44px;
+    padding: 6px;
     top: calc(50% + 150px);
     bottom: auto;
   }
@@ -527,6 +543,6 @@
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    min-width: 60px;
+    min-width: 68px;
   }
 }
