@@ -22,8 +22,8 @@
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(106, 156, 137, 0.3);
   border-radius: 2px;
-  padding: 20px;
-  max-width: 400px;
+  padding: 16px;
+  max-width: 320px;
   width: 100%;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
@@ -66,13 +66,13 @@
   }
 
   .shareIconButton {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
   }
 
   .shareIconButton svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -87,13 +87,13 @@
   }
 
   .shareIconButton {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 
   .shareIconButton svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -103,12 +103,14 @@
   right: 16px;
   background: rgba(196, 218, 210, 0.2);
   border: 1px solid rgba(106, 156, 137, 0.4);
-  font-size: 18px;
+  font-size: 14px;
   line-height: 1;
   cursor: pointer;
   color: var(--pale-mint);
-  width: 32px;
-  height: 32px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -118,6 +120,13 @@
   margin: 0;
   font-family: Arial, sans-serif;
   font-weight: 300;
+  box-sizing: border-box;
+}
+
+.closeButton svg {
+  display: block;
+  margin: 0;
+  padding: 0;
 }
 
 .closeButton:hover {
@@ -127,9 +136,9 @@
 }
 
 .title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   color: var(--pale-mint);
   font-family: 'Nunito', sans-serif;
 }
@@ -137,7 +146,7 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .inputGroup {
@@ -272,21 +281,21 @@
 }
 
 .shareLabel {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--pale-mint);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-family: 'Nunito', sans-serif;
 }
 
 .linkContainer {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .linkInput {
   flex: 1;
-  padding: 8px;
+  padding: 6px 8px;
   border: 1px solid rgba(106, 156, 137, 0.4);
   border-radius: 2px;
   font-size: 12px;
@@ -296,7 +305,7 @@
 }
 
 .copyButton {
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: var(--medium-teal);
   color: var(--pure-white);
   border: none;
@@ -308,7 +317,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
+  min-width: 36px;
 }
 
 .copyButton .icon {
@@ -322,22 +331,22 @@
 }
 
 .shareButtons {
-  margin-top: 16px;
+  margin-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .shareIcons {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
 }
 
 .shareIconButton {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   background: rgba(196, 218, 210, 0.2);
   color: var(--pale-mint);
@@ -356,6 +365,6 @@
 }
 
 .shareIconButton svg {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 }
