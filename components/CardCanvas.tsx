@@ -178,7 +178,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const prevModeRef = useRef(mode)
   const prevSelectedDecorationRef = useRef(selectedDecoration)
   const prevToolRef = useRef(currentTool)
+  const prevDrawSettingsRef = useRef(drawSettings)
   const isInitialMountRef = useRef(true)
+  const isSavingDrawingRef = useRef(false) // Prevent duplicate saves when handleMouseUp is called multiple times
 
   // Draw all decorations on canvas
   useEffect(() => {
@@ -325,6 +327,12 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Check if currentTool changed (need to redraw borders when tool changes)
     const toolChanged = currentTool !== prevToolRef.current
     
+    // Check if drawSettings changed (need to redraw to ensure drawings stay visible)
+    const drawSettingsChanged = 
+      drawSettings.color !== prevDrawSettingsRef.current.color ||
+      drawSettings.lineWidth !== prevDrawSettingsRef.current.lineWidth ||
+      drawSettings.smoothing !== prevDrawSettingsRef.current.smoothing
+    
     // Check if we're currently drawing (need to redraw to show current path)
     const isCurrentlyDrawing = isDrawing && currentTool === 'draw' && currentPath.length > 0
     
@@ -345,20 +353,25 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     
     // Only clear and redraw everything if decorations actually changed
     // For selection/tool changes, we'll do incremental updates
-    const needsFullRedraw = decorationsChanged || modeChanged
+    // Also force full redraw if drawSettings changed to ensure drawings stay visible
+    // Force full redraw when tool changes to ensure all decorations (especially drawings) stay visible
+    // Also force full redraw when draw tool is active to ensure drawings are always visible
+    const needsFullRedraw = decorationsChanged || modeChanged || drawSettingsChanged || toolChanged || currentTool === 'draw'
     
     // Track which decorations need incremental updates
     let idsToUpdate: string[] = []
     
-    if (needsFullRedraw) {
+    // Clear canvas if doing full redraw OR if currently drawing (need clean slate for drawing)
+    if (needsFullRedraw || isCurrentlyDrawing) {
       // Clear canvas with card background color
       // Use logical dimensions after context scaling
       ctx.fillStyle = CARD_BACKGROUND_COLOR
       ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
     } else {
-      // For incremental updates (selection/tool changes), only update affected areas
+      // For incremental updates (selection changes only), only update affected areas
       // Skip full redraw if nothing significant changed
-      if (!selectionChanged && !toolChanged && !isCurrentlyDrawing && !isCurrentlyDragging && !isCurrentlyEditing) {
+      // Note: drawSettingsChanged and toolChanged are handled above with needsFullRedraw
+      if (!selectionChanged && !isCurrentlyDrawing && !isCurrentlyDragging && !isCurrentlyEditing) {
         return
       }
       
@@ -477,8 +490,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
 
     // Draw all decorations
     const drawDecorations = async (onlyChanged?: { face: 'front' | 'back', ids: string[] }) => {
-      // Only clear background if doing full redraw
-      if (needsFullRedraw || !onlyChanged) {
+      // Only clear background if doing full redraw or currently drawing
+      // (Background already cleared above if isCurrentlyDrawing, but this ensures consistency)
+      if (needsFullRedraw || isCurrentlyDrawing || !onlyChanged) {
         // Re-fill background with card background color
         // Use logical dimensions after context scaling
         ctx.fillStyle = CARD_BACKGROUND_COLOR
@@ -685,7 +699,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
 
     // Draw decorations (full redraw or incremental)
     ;(async () => {
-      if (needsFullRedraw) {
+      // Always redraw all decorations when draw tool is active or when drawing to ensure they're visible
+      if (needsFullRedraw || isCurrentlyDrawing || currentTool === 'draw') {
         // Full redraw - draw all decorations
         await drawDecorations()
       } else if (idsToUpdate.length > 0) {
@@ -718,6 +733,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     prevModeRef.current = displayMode
     prevSelectedDecorationRef.current = selectedDecoration
     prevToolRef.current = currentTool
+    prevDrawSettingsRef.current = drawSettings
   }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool, editingTextId, isDrawing, currentPath, isDragging, editingTextValue])
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -1030,7 +1046,20 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Disable interactions in read-only mode
     if (readOnly) return
     
-    if (isDrawing && currentPath.length > 0 && currentTool === 'draw') {
+    // Check if we're about to save a drawing
+    const isAboutToSaveDrawing = isDrawing && currentPath.length > 0 && currentTool === 'draw'
+    
+    // Prevent duplicate saves when handleMouseUp is called multiple times (mouseUp, mouseLeave, touchEnd)
+    if (isAboutToSaveDrawing && isSavingDrawingRef.current) {
+      return
+    }
+    
+    // Mark that we're saving BEFORE processing to prevent race conditions
+    if (isAboutToSaveDrawing) {
+      isSavingDrawingRef.current = true
+    }
+    
+    if (isAboutToSaveDrawing) {
       const face = mode === 'front' ? 'front' : 'back'
       
       // Apply smoothing to path before saving
@@ -1111,6 +1140,13 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       
       // Clear current path after saving (the drawing is now saved as decoration)
       setCurrentPath([])
+      // Reset the saving flag after a short delay to allow the state update to complete
+      setTimeout(() => {
+        isSavingDrawingRef.current = false
+      }, 100)
+    } else {
+      // Reset flag immediately if not saving a drawing
+      isSavingDrawingRef.current = false
     }
     setIsDrawing(false)
     setIsDragging(false)

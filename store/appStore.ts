@@ -108,9 +108,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   setTextSettings: (settings) => set({ textSettings: settings }),
   addDecoration: (face, decoration) => {
     const state = get()
-    // Save current state to history before change
+    // Add the decoration first
+    const newDecorations = {
+      ...state.decorations,
+      [face]: [...state.decorations[face], decoration],
+    }
+    
+    // Save the NEW state (with decoration) to history
+    // History index should point to the state AFTER the change
     const historyState: HistoryState = {
-      decorations: JSON.parse(JSON.stringify(state.decorations)),
+      decorations: JSON.parse(JSON.stringify(newDecorations)),
       timestamp: Date.now(),
     }
     const newHistory = state.history.slice(0, state.historyIndex + 1)
@@ -118,11 +125,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const limitedHistory = newHistory.slice(-MAX_HISTORY)
     
     set({
-      decorations: {
-        ...state.decorations,
-        [face]: [...state.decorations[face], decoration],
-      },
+      decorations: newDecorations,
       history: limitedHistory,
+      // History index points to the state AFTER the change
+      // When undoing, we go to history[historyIndex - 1], which is the state before the change
       historyIndex: limitedHistory.length - 1,
     })
   },
