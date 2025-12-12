@@ -174,7 +174,8 @@
   position: absolute;
   left: calc(100% + 16px);
   top: 0;
-  width: 200px;
+  width: 218px;
+  min-width: 218px;
   max-width: calc(100vw - 100px);
   max-height: 90vh;
   background: rgba(22, 66, 60, 0.95);
@@ -400,10 +401,11 @@
     right: auto;
     left: 50%;
     transform: translateX(-50%);
-    top: calc(100% + 8px) !important;
-    bottom: auto;
-    width: calc(100vw - 20px);
-    max-width: 300px;
+    top: auto !important;
+    bottom: calc(100% + 8px) !important;
+    width: 188px;
+    min-width: 188px;
+    max-width: calc(100vw - 20px);
     max-height: 40vh;
     border-radius: 2px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -507,7 +509,10 @@
     right: auto;
     left: 50%;
     transform: translateX(-50%);
-    top: calc(100% + 8px) !important;
+    top: auto !important;
+    bottom: calc(100% + 8px) !important;
+    width: 188px;
+    min-width: 188px;
     max-height: 40vh;
     max-width: calc(100vw - 16px);
   }
