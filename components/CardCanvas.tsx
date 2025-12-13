@@ -691,30 +691,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             
           // Draw selection border
           // Only show borders when the appropriate tool is explicitly active and not in read-only mode
-          // Text tool: full line border (solid) for selection (but NOT when editing - textarea has its own border)
-          // IMPORTANT: Only draw text border when text tool is ACTIVE
-          // Use strict equality and multiple checks to prevent border in other tools
-          if (!readOnly && decoration.type === 'text' && currentTool === 'text') {
-            // Triple-check: only show if text tool is active AND selected (but NOT editing)
-            // When editing, the textarea has its own border, so we don't need a canvas border
-            // This ensures border never shows in other tools and doesn't duplicate when editing
-            const toolIsText = currentTool === 'text'
-            const isTextEditing = toolIsText && editingTextId === decoration.id
-            const isTextSelected = toolIsText && selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
-            
-            // Only draw canvas border when selected but NOT editing (textarea has its own border when editing)
-            if (toolIsText && isTextSelected && !isTextEditing) {
-              ctx.strokeStyle = '#6a9c89'
-              ctx.lineWidth = 2
-              ctx.setLineDash([]) // Solid line
-              ctx.strokeRect(
-                x - textWidth / 2 - 8,
-                y - textHeight / 2 - 8,
-                textWidth + 16,
-                textHeight + 16
-              )
-            }
-          } else if (!readOnly && currentTool === 'grab' && showFullSelection) {
+          // Text tool: No canvas border - only textarea border when editing
+          // Grab tool: dotted border for selection
+          if (!readOnly && currentTool === 'grab' && showFullSelection) {
             // Grab tool: dotted border for selection
             const borderX = x - textWidth / 2 - 8
             const borderY = y - textHeight / 2 - 8
