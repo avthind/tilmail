@@ -79,5 +79,10 @@
   caret-color: currentColor;
   /* Make it visually seamless - no visible input field */
   box-shadow: none;
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  line-height: 1.2;
 }
 

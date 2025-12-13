@@ -450,8 +450,18 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           }
         } else if (dec.type === 'text') {
           ctx.font = `${dec.data.fontWeight === 'bold' ? 'bold ' : ''}${dec.data.fontStyle || 'normal'} ${dec.data.fontSize || 24}px ${dec.data.fontFamily || 'Arial, sans-serif'}`
-          const textWidth = ctx.measureText(dec.data.text || '').width
-          const textHeight = dec.data.fontSize || 24
+          const text = dec.data.text || ''
+          const lines = text.split('\n')
+          const fontSize = dec.data.fontSize || 24
+          const lineHeight = fontSize * 1.2
+          // Calculate width of longest line
+          let maxTextWidth = 0
+          lines.forEach(line => {
+            const lineWidth = ctx.measureText(line).width
+            maxTextWidth = Math.max(maxTextWidth, lineWidth)
+          })
+          const textWidth = maxTextWidth
+          const textHeight = lines.length * lineHeight
           return {
             x: x - textWidth / 2 - padding,
             y: y - textHeight / 2 - padding,
@@ -659,9 +669,18 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
 
-          // Measure text width for proper underline and border positioning
-            const textWidth = ctx.measureText(decoration.data.text || '').width
-            const textHeight = fontSize
+          // Measure text width and height for proper underline and border positioning (support multi-line)
+          const text = decoration.data.text || ''
+          const lines = text.split('\n')
+          const lineHeight = fontSize * 1.2
+          // Calculate width of longest line
+          let maxTextWidth = 0
+          lines.forEach(line => {
+            const lineWidth = ctx.measureText(line).width
+            maxTextWidth = Math.max(maxTextWidth, lineWidth)
+          })
+          const textWidth = maxTextWidth
+          const textHeight = lines.length * lineHeight
             
           // Draw selection border
           // Only show borders when the appropriate tool is explicitly active and not in read-only mode
@@ -729,15 +748,24 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           const isCurrentlyEditing = editingTextId === decoration.id && currentTool === 'text'
           
           if (!isCurrentlyEditing) {
-            // Draw text first
-            ctx.fillText(decoration.data.text || '', x, y)
+            // Draw text - support multi-line text
+            const text = decoration.data.text || ''
+            const lines = text.split('\n')
+            const lineHeight = fontSize * 1.2 // Line height with some spacing
+            const totalHeight = lines.length * lineHeight
+            const startY = y - (totalHeight - lineHeight) / 2 // Center multi-line text vertically
+            
+            lines.forEach((line, index) => {
+              const lineY = startY + (index * lineHeight)
+              ctx.fillText(line, x, lineY)
+            })
             
             // Draw underline after text, using actual text width
             if (decoration.data.textDecoration === 'underline') {
               ctx.strokeStyle = decoration.data.color || '#000000'
               ctx.lineWidth = Math.max(1, fontSize / 20) // Scale underline thickness with font size
               ctx.beginPath()
-              const underlineY = y + fontSize / 2 + 2 // Position below text baseline
+              const underlineY = startY + (lines.length - 1) * lineHeight + fontSize / 2 + 2 // Position below last line
               ctx.moveTo(x - textWidth / 2, underlineY)
               ctx.lineTo(x + textWidth / 2, underlineY)
               ctx.stroke()
@@ -978,8 +1006,17 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         const fontWeight = dec.data.fontWeight || 'normal'
         const fontStyle = dec.data.fontStyle || 'normal'
         ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontStyle} ${fontSize}px ${fontFamily}`
-        const textWidth = ctx.measureText(dec.data.text || '').width
-        const textHeight = fontSize
+        const text = dec.data.text || ''
+        const lines = text.split('\n')
+        const lineHeight = fontSize * 1.2
+        // Calculate width of longest line
+        let maxTextWidth = 0
+        lines.forEach(line => {
+          const lineWidth = ctx.measureText(line).width
+          maxTextWidth = Math.max(maxTextWidth, lineWidth)
+        })
+        const textWidth = maxTextWidth
+        const textHeight = lines.length * lineHeight
         
         return {
           x: x - textWidth / 2 - padding,
@@ -1480,7 +1517,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     ? decorations[selectedDecoration.face]?.find(d => d.id === editingTextId && d.type === 'text')
     : null
 
-  const handleTextInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTextInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let newValue = e.target.value
     
     // Auto-clear placeholder text when user starts typing
@@ -1507,14 +1544,14 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     }
   }
   
-  const handleTextInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleTextInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // If placeholder is selected and user types, clear it first
     if (editingTextValue === 'Your text…' && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
       // User typed a character while placeholder is shown - clear it
       setEditingTextValue('')
       e.preventDefault()
       // Insert the character manually
-      const input = e.currentTarget
+      const textarea = e.currentTarget
       const newValue = e.key
       setEditingTextValue(newValue)
       if (selectedTextDecoration && editingTextId) {
@@ -1527,14 +1564,14 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       }
       // Move cursor to end
       setTimeout(() => {
-        input.setSelectionRange(newValue.length, newValue.length)
+        textarea.setSelectionRange(newValue.length, newValue.length)
       }, 0)
       return
     }
     
-    if (e.key === 'Enter') {
-      // Text is already updated via updateDecorationWithoutHistory during typing
-      // Just save current state to history (state was saved when editing started)
+    // Escape key - finish editing
+    if (e.key === 'Escape') {
+      e.preventDefault()
       if (editingTextId && selectedTextDecoration) {
         const face = selectedDecoration!.face
         // Ensure text is saved (it's already updated during typing)
@@ -1550,6 +1587,15 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         e.currentTarget.blur()
       }, 0)
     }
+    // Enter key - allow default behavior (line break in textarea)
+    // No need to handle Enter specially - textarea handles it naturally
+  }
+  
+  const handleTextInputInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    // Auto-resize textarea to fit content
+    const textarea = e.currentTarget
+    textarea.style.height = 'auto'
+    textarea.style.height = `${textarea.scrollHeight}px`
   }
 
   const handleTextInputBlur = () => {
@@ -1615,10 +1661,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           }}
         />
         {selectedTextDecoration && editingTextId && (
-          <input
-            type="text"
+          <textarea
             value={editingTextValue}
             onChange={handleTextInputChange}
+            onInput={handleTextInputInput}
             onBlur={handleTextInputBlur}
             onKeyDown={handleTextInputKeyDown}
             onFocus={(e) => {
@@ -1640,12 +1686,19 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               transform: 'translate(-50%, -50%)',
               background: 'transparent',
               border: 'none',
+              resize: 'none',
+              overflow: 'hidden',
               width: 'auto',
-              minWidth: '0',
+              minWidth: '200px',
+              maxWidth: `${CARD_WIDTH - 40}px`,
               padding: '0',
               textAlign: 'center',
+              lineHeight: '1.2',
+              whiteSpace: 'pre-wrap',
+              wordWrap: 'break-word',
             }}
             autoFocus
+            rows={1}
           />
         )}
       </div>
