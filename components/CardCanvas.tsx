@@ -356,12 +356,14 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Also force full redraw if drawSettings changed to ensure drawings stay visible
     // Force full redraw when tool changes to ensure all decorations (especially drawings) stay visible
     // Also force full redraw when draw tool is active to ensure drawings are always visible
+    // For sticker tool, toolChanged handles it when switching to it, and decorationsChanged handles it when placing
     const needsFullRedraw = decorationsChanged || modeChanged || drawSettingsChanged || toolChanged || currentTool === 'draw'
     
     // Track which decorations need incremental updates
     let idsToUpdate: string[] = []
     
     // Clear canvas if doing full redraw OR if currently drawing (need clean slate for drawing)
+    // Always clear for full redraws to ensure all decorations are properly redrawn
     if (needsFullRedraw || isCurrentlyDrawing) {
       // Clear canvas with card background color
       // Use logical dimensions after context scaling
@@ -491,7 +493,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Draw all decorations
     const drawDecorations = async (onlyChanged?: { face: 'front' | 'back', ids: string[] }) => {
       // Only clear background if doing full redraw or currently drawing
-      // (Background already cleared above if isCurrentlyDrawing, but this ensures consistency)
+      // Always clear for full redraws to ensure all decorations are properly redrawn
       if (needsFullRedraw || isCurrentlyDrawing || !onlyChanged) {
         // Re-fill background with card background color
         // Use logical dimensions after context scaling
@@ -700,6 +702,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Draw decorations (full redraw or incremental)
     ;(async () => {
       // Always redraw all decorations when draw tool is active or when drawing to ensure they're visible
+      // For sticker tool, only redraw when switching to it (handled by toolChanged in needsFullRedraw)
       if (needsFullRedraw || isCurrentlyDrawing || currentTool === 'draw') {
         // Full redraw - draw all decorations
         await drawDecorations()
@@ -884,6 +887,57 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             scale: 0.5,
             rotation: 0,
           }
+          
+          // Draw the sticker directly on canvas immediately to prevent flickering
+          // This keeps the sticker visible without clearing and redrawing everything
+          const canvas = canvasRef.current
+          if (canvas) {
+            const ctx = canvas.getContext('2d')
+            if (ctx) {
+              const scale = newDecoration.scale || 0.5
+              const stickerSize = 64 * scale
+              const x = coords.canvasX
+              const y = coords.canvasY
+              
+              // Draw sticker image - for data URLs, load synchronously
+              if (stickerData.url) {
+                const img = new Image()
+                // For data URLs, image loads instantly, so we can draw synchronously
+                img.onload = () => {
+                  ctx.drawImage(
+                    img,
+                    x - stickerSize / 2,
+                    y - stickerSize / 2,
+                    stickerSize,
+                    stickerSize
+                  )
+                }
+                img.onerror = () => {
+                  // Fallback circle if image fails
+                  ctx.fillStyle = stickerData.color || '#ff6b6b'
+                  ctx.beginPath()
+                  ctx.arc(x, y, stickerSize / 2, 0, Math.PI * 2)
+                  ctx.fill()
+                }
+                img.src = stickerData.url
+                
+                // For data URLs, check if already loaded and draw immediately
+                if (img.complete && img.naturalWidth > 0) {
+                  ctx.drawImage(
+                    img,
+                    x - stickerSize / 2,
+                    y - stickerSize / 2,
+                    stickerSize,
+                    stickerSize
+                  )
+                }
+              }
+            }
+          }
+          
+          // Draw sticker immediately, then add to decorations
+          // The immediate draw prevents flicker by showing the sticker right away
+          // The full redraw that follows will redraw everything properly
           addDecoration(face, newDecoration)
           // Keep sticker selected for placing more instances (industry standard)
           // Don't auto-select decoration - user can use grab tool if they want to move it
