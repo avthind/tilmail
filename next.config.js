@@ -1,3 +1,6 @@
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' })
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

@@ -17,15 +17,15 @@ export default function ClientInit() {
         // Silently fail if module can't be loaded or Sentry not installed
       })
 
-    // Validate environment variables
+    // Validate environment variables (runs once on client-side)
     import('@/lib/env')
       .then(({ validateEnv }) => {
         try {
           validateEnv()
         } catch (error) {
-          // Only log in development
+          // Log errors but don't crash the app
           if (process.env.NODE_ENV === 'development') {
-            console.warn('Environment validation warning:', error)
+            console.error('[ENV VALIDATION] Validation error:', error)
           }
         }
       })

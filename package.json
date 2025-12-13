@@ -25,6 +25,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "@types/three": "^0.169.0",
+    "dotenv": "^17.2.3",
     "typescript": "^5"
   }
 }

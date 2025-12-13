@@ -4,16 +4,26 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { FaceDecorations } from '@/store/appStore'
 import { validateEnv } from './env'
 
-// Validate and get environment configuration
-const envConfig = validateEnv()
+// Validate and get environment configuration (non-blocking)
+// If validation fails, we'll use direct env vars or fallbacks
+let envConfig: ReturnType<typeof validateEnv> | null = null
+try {
+  envConfig = validateEnv()
+} catch (error) {
+  // If validation fails, we'll use process.env directly
+  // This prevents the app from crashing during module initialization
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+    console.error('Environment validation failed, using direct env vars:', error)
+  }
+}
 
 const firebaseConfig = {
-  apiKey: envConfig.firebase.apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'demo-key',
-  authDomain: envConfig.firebase.authDomain || process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'demo.firebaseapp.com',
-  projectId: envConfig.firebase.projectId || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-project',
-  storageBucket: envConfig.firebase.storageBucket || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'demo.appspot.com',
-  messagingSenderId: envConfig.firebase.messagingSenderId || process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
-  appId: envConfig.firebase.appId || process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'demo-app-id',
+  apiKey: envConfig?.firebase.apiKey || process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'demo-key',
+  authDomain: envConfig?.firebase.authDomain || process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'demo.firebaseapp.com',
+  projectId: envConfig?.firebase.projectId || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'demo-project',
+  storageBucket: envConfig?.firebase.storageBucket || process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'demo.appspot.com',
+  messagingSenderId: envConfig?.firebase.messagingSenderId || process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
+  appId: envConfig?.firebase.appId || process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'demo-app-id',
 }
 
 const app = initializeApp(firebaseConfig)
