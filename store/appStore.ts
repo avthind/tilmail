@@ -56,6 +56,8 @@ interface AppState {
   updateDecoration: (face: 'front' | 'back', id: string, data: any) => void
   updateDecorationWithoutHistory: (face: 'front' | 'back', id: string, data: any) => void
   updateDecorationPosition: (face: 'front' | 'back', id: string, x: number, y: number) => void
+  updateDecorationScale: (face: 'front' | 'back', id: string, scale: number) => void
+  updateDecorationRotation: (face: 'front' | 'back', id: string, rotation: number) => void
   saveDecorationPositionToHistory: (face: 'front' | 'back', id: string) => void
   setShowSendModal: (show: boolean) => void
   // History management
@@ -198,6 +200,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     }))
     // Note: Position updates don't add to history (too frequent during drag)
     // Use saveDecorationPositionToHistory() when drag ends
+  },
+  updateDecorationScale: (face, id, scale) => {
+    set((state) => ({
+      decorations: {
+        ...state.decorations,
+        [face]: state.decorations[face].map((d) =>
+          d.id === id ? { ...d, scale } : d
+        ),
+      },
+    }))
+  },
+  updateDecorationRotation: (face, id, rotation) => {
+    set((state) => ({
+      decorations: {
+        ...state.decorations,
+        [face]: state.decorations[face].map((d) =>
+          d.id === id ? { ...d, rotation } : d
+        ),
+      },
+    }))
   },
   saveDecorationPositionToHistory: (face, id) => {
     // Save current state to history after position change (when drag ends)

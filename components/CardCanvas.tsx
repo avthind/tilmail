@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
-import { useAppStore, type HistoryState } from '@/store/appStore'
+import { useAppStore } from '@/store/appStore'
 import { getStickerData } from './StickerPicker'
 import styles from './CardCanvas.module.css'
 
@@ -169,16 +169,64 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return
+      }
+      
       // ESC to deselect
       if (e.key === 'Escape') {
         setSelectedDecoration(null)
         setEditingTextId(null)
+        return
+      }
+      
+      // Arrow key nudging (only when decoration is selected and not editing text)
+      if (selectedDecoration && !editingTextId && currentTool === 'grab') {
+        const isArrowKey = e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight'
+        if (isArrowKey) {
+          e.preventDefault()
+          
+          const nudgeAmount = e.shiftKey ? 10 : 1 // Shift = 10px, normal = 1px
+          let deltaX = 0
+          let deltaY = 0
+          
+          if (e.key === 'ArrowUp') deltaY = -nudgeAmount
+          else if (e.key === 'ArrowDown') deltaY = nudgeAmount
+          else if (e.key === 'ArrowLeft') deltaX = -nudgeAmount
+          else if (e.key === 'ArrowRight') deltaX = nudgeAmount
+          
+          const decoration = decorations[selectedDecoration.face].find(d => d.id === selectedDecoration.id)
+          if (decoration) {
+            const newX = decoration.x + deltaX
+            const newY = decoration.y + deltaY
+            
+            if (decoration.type === 'drawing' && decoration.data.paths) {
+              // For drawings, update all path points
+              const updatedPaths = decoration.data.paths.map((path: number[][]) =>
+                path.map((point: number[]) => [point[0] + deltaX, point[1] + deltaY])
+              )
+              updateDecorationWithoutHistory(selectedDecoration.face, decoration.id, {
+                ...decoration.data,
+                paths: updatedPaths,
+              })
+            }
+            
+            // Update position
+            updateDecorationPosition(selectedDecoration.face, decoration.id, newX, newY)
+            
+            // Save to history after nudge
+            setTimeout(() => {
+              saveDecorationPositionToHistory(selectedDecoration.face, selectedDecoration.id)
+            }, 0)
+          }
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setSelectedDecoration])
+  }, [setSelectedDecoration, selectedDecoration, editingTextId, currentTool, decorations, updateDecorationPosition, updateDecorationWithoutHistory, saveDecorationPositionToHistory])
 
   // Track previous state to avoid unnecessary redraws
   const prevDecorationsRef = useRef(decorations)
@@ -532,16 +580,39 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
 
           // Draw selection border (only in grab mode for stickers, not in read-only)
           if (!readOnly && currentTool === 'grab' && showFullSelection) {
+            const borderX = x - stickerSize / 2 - 8
+            const borderY = y - stickerSize / 2 - 8
+            const borderWidth = stickerSize + 16
+            const borderHeight = stickerSize + 16
+            
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
             ctx.setLineDash([5, 5])
-            ctx.strokeRect(
-              x - stickerSize / 2 - 8,
-              y - stickerSize / 2 - 8,
-              stickerSize + 16,
-              stickerSize + 16
-            )
+            ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
             ctx.setLineDash([])
+            
+            // Draw delete button (X) in top-right corner
+            const deleteBtnSize = 20
+            const deleteBtnX = borderX + borderWidth
+            const deleteBtnY = borderY
+            
+            // Background circle
+            ctx.fillStyle = '#ff4444'
+            ctx.beginPath()
+            ctx.arc(deleteBtnX, deleteBtnY, deleteBtnSize / 2, 0, Math.PI * 2)
+            ctx.fill()
+            
+            // X icon
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 2
+            ctx.lineCap = 'round'
+            const crossSize = 8
+            ctx.beginPath()
+            ctx.moveTo(deleteBtnX - crossSize / 2, deleteBtnY - crossSize / 2)
+            ctx.lineTo(deleteBtnX + crossSize / 2, deleteBtnY + crossSize / 2)
+            ctx.moveTo(deleteBtnX + crossSize / 2, deleteBtnY - crossSize / 2)
+            ctx.lineTo(deleteBtnX - crossSize / 2, deleteBtnY + crossSize / 2)
+            ctx.stroke()
           }
 
           // Draw sticker
@@ -618,16 +689,39 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             }
           } else if (!readOnly && currentTool === 'grab' && showFullSelection) {
             // Grab tool: dotted border for selection
+            const borderX = x - textWidth / 2 - 8
+            const borderY = y - textHeight / 2 - 8
+            const borderWidth = textWidth + 16
+            const borderHeight = textHeight + 16
+            
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
             ctx.setLineDash([5, 5]) // Dotted line
-            ctx.strokeRect(
-              x - textWidth / 2 - 8,
-              y - textHeight / 2 - 8,
-              textWidth + 16,
-              textHeight + 16
-            )
+            ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
             ctx.setLineDash([])
+            
+            // Draw delete button (X) in top-right corner
+            const deleteBtnSize = 20
+            const deleteBtnX = borderX + borderWidth
+            const deleteBtnY = borderY
+            
+            // Background circle
+            ctx.fillStyle = '#ff4444'
+            ctx.beginPath()
+            ctx.arc(deleteBtnX, deleteBtnY, deleteBtnSize / 2, 0, Math.PI * 2)
+            ctx.fill()
+            
+            // X icon
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 2
+            ctx.lineCap = 'round'
+            const crossSize = 8
+            ctx.beginPath()
+            ctx.moveTo(deleteBtnX - crossSize / 2, deleteBtnY - crossSize / 2)
+            ctx.lineTo(deleteBtnX + crossSize / 2, deleteBtnY + crossSize / 2)
+            ctx.moveTo(deleteBtnX + crossSize / 2, deleteBtnY - crossSize / 2)
+            ctx.lineTo(deleteBtnX - crossSize / 2, deleteBtnY + crossSize / 2)
+            ctx.stroke()
           }
 
           // Don't draw text on canvas when editing - the input field handles it
@@ -687,26 +781,48 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               }
             })
             
-            // Draw selection border and trash icon if selected (only in grab mode, not in read-only)
+            // Draw selection border and delete button if selected (only in grab mode, not in read-only)
             if (!readOnly && currentTool === 'grab' && showFullSelection && minX !== Infinity) {
               const padding = 8
+              const borderX = minX - padding
+              const borderY = minY - padding
+              const borderWidth = maxX - minX + padding * 2
+              const borderHeight = maxY - minY + padding * 2
+              
               ctx.strokeStyle = '#6a9c89'
               ctx.lineWidth = 2
               ctx.setLineDash([5, 5])
-              ctx.strokeRect(
-                minX - padding,
-                minY - padding,
-                maxX - minX + padding * 2,
-                maxY - minY + padding * 2
-              )
+              ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
               ctx.setLineDash([])
+              
+              // Draw delete button (X) in top-right corner
+              const deleteBtnSize = 20
+              const deleteBtnX = borderX + borderWidth
+              const deleteBtnY = borderY
+              
+              // Background circle
+              ctx.fillStyle = '#ff4444'
+              ctx.beginPath()
+              ctx.arc(deleteBtnX, deleteBtnY, deleteBtnSize / 2, 0, Math.PI * 2)
+              ctx.fill()
+              
+              // X icon
+              ctx.strokeStyle = '#ffffff'
+              ctx.lineWidth = 2
+              ctx.lineCap = 'round'
+              const crossSize = 8
+              ctx.beginPath()
+              ctx.moveTo(deleteBtnX - crossSize / 2, deleteBtnY - crossSize / 2)
+              ctx.lineTo(deleteBtnX + crossSize / 2, deleteBtnY + crossSize / 2)
+              ctx.moveTo(deleteBtnX + crossSize / 2, deleteBtnY - crossSize / 2)
+              ctx.lineTo(deleteBtnX - crossSize / 2, deleteBtnY + crossSize / 2)
+              ctx.stroke()
             }
           }
         }
       }
-
     }
-
+    
     // Draw decorations (full redraw or incremental)
     ;(async () => {
       // Always redraw all decorations when draw tool, text tool, or grab tool is active or when drawing to ensure they're visible
@@ -833,6 +949,81 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     return null
   }
 
+  // Helper function to check if click is on delete button
+  const isClickOnDeleteButton = (coords: { canvasX: number; canvasY: number }, dec: any): boolean => {
+    if (!dec || currentTool !== 'grab' || !selectedDecoration || selectedDecoration.id !== dec.id) return false
+    
+    const bounds = (() => {
+      const x = (dec.x + CARD_WIDTH / 2)
+      const y = (dec.y + CARD_HEIGHT / 2)
+      const padding = 8
+      
+      if (dec.type === 'sticker') {
+        const scale = dec.data.scale || 0.15
+        const size = 64 * scale
+        return {
+          x: x - size / 2 - padding,
+          y: y - size / 2 - padding,
+          width: size + padding * 2,
+          height: size + padding * 2
+        }
+      } else if (dec.type === 'text') {
+        const canvas = canvasRef.current
+        if (!canvas) return null
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        
+        const fontSize = dec.data.fontSize || 24
+        const fontFamily = dec.data.fontFamily || 'Arial, sans-serif'
+        const fontWeight = dec.data.fontWeight || 'normal'
+        const fontStyle = dec.data.fontStyle || 'normal'
+        ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontStyle} ${fontSize}px ${fontFamily}`
+        const textWidth = ctx.measureText(dec.data.text || '').width
+        const textHeight = fontSize
+        
+        return {
+          x: x - textWidth / 2 - padding,
+          y: y - textHeight / 2 - padding,
+          width: textWidth + padding * 2,
+          height: textHeight + padding * 2
+        }
+      } else if (dec.type === 'drawing' && dec.data.paths) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        dec.data.paths.forEach((path: number[][]) => {
+          path.forEach((point: number[]) => {
+            const px = point[0] + CARD_WIDTH / 2
+            const py = point[1] + CARD_HEIGHT / 2
+            minX = Math.min(minX, px)
+            minY = Math.min(minY, py)
+            maxX = Math.max(maxX, px)
+            maxY = Math.max(maxY, py)
+          })
+        })
+        if (minX === Infinity) return null
+        return {
+          x: minX - padding,
+          y: minY - padding,
+          width: maxX - minX + padding * 2,
+          height: maxY - minY + padding * 2
+        }
+      }
+      return null
+    })()
+    
+    if (!bounds) return false
+    
+    const deleteBtnSize = 20
+    const deleteBtnX = bounds.x + bounds.width
+    const deleteBtnY = bounds.y
+    const hitRadius = deleteBtnSize / 2
+    
+    const distance = Math.sqrt(
+      Math.pow(coords.canvasX - deleteBtnX, 2) + Math.pow(coords.canvasY - deleteBtnY, 2)
+    )
+    
+    return distance < hitRadius
+  }
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     // Stop event propagation to prevent click-outside handlers from closing the tool
     e.stopPropagation()
@@ -847,6 +1038,17 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       return
     }
 
+    // Check if clicking on delete button of currently selected decoration (in grab mode)
+    if (currentTool === 'grab' && selectedDecoration) {
+      const face = selectedDecoration.face
+      const selectedDec = decorations[face].find(d => d.id === selectedDecoration.id)
+      if (selectedDec && isClickOnDeleteButton(coords, selectedDec)) {
+        removeDecoration(face, selectedDecoration.id)
+        setSelectedDecoration(null)
+        return
+      }
+    }
+    
     const decoration = findDecorationAtPoint(coords)
     
     // Text tool: clicking on existing text selects it

@@ -10,3 +10,5 @@ global undo doesnt work on stickers
 grab mode
 
 view mode
+
+rotate/resize

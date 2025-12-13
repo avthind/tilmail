@@ -28,14 +28,6 @@ export default function Toolbar() {
     duplicateDecoration,
   } = useAppStore()
 
-  const handleDelete = () => {
-    // Delete selected decoration (works globally, not just in grab mode)
-    if (selectedDecoration) {
-      removeDecoration(selectedDecoration.face, selectedDecoration.id)
-      setSelectedDecoration(null)
-    }
-  }
-
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -62,7 +54,8 @@ export default function Toolbar() {
       // Delete/Backspace - Delete selected item
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedDecoration) {
         e.preventDefault()
-        handleDelete()
+        removeDecoration(selectedDecoration.face, selectedDecoration.id)
+        setSelectedDecoration(null)
         return
       }
 
@@ -257,20 +250,6 @@ export default function Toolbar() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 7v6h-6"></path>
                 <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"></path>
-              </svg>
-            </button>
-            <button
-              className={styles.actionButton}
-              onClick={handleDelete}
-              disabled={!selectedDecoration}
-              aria-label="Delete selected decoration"
-              title="Delete (Delete/Backspace)"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
               </svg>
             </button>
           </div>
