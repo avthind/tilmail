@@ -69,18 +69,27 @@ export default function TextTool() {
 
   // Sync controls when selected text changes
   useEffect(() => {
+    // Ensure color matches one of the available colors, defaulting to first if not
+    const availableColors = COLORS.map(c => c.value)
+    
     if (selectedText) {
+      const textColor = selectedText.data.color || textSettings.color || COLORS[0].value
+      const validColor = availableColors.includes(textColor) ? textColor : COLORS[0].value
+      
       setFontFamily(selectedText.data.fontFamily || textSettings.fontFamily)
       setFontSize(selectedText.data.fontSize || textSettings.fontSize || 24)
-      setColor(selectedText.data.color || textSettings.color || COLORS[0].value)
+      setColor(validColor)
       setFontWeight(selectedText.data.fontWeight || textSettings.fontWeight || 'normal')
       setFontStyle(selectedText.data.fontStyle || 'normal')
       setTextDecoration(selectedText.data.textDecoration || textSettings.textDecoration || 'none')
     } else {
       // Reset to default settings when no text is selected
+      const defaultColor = textSettings.color || COLORS[0].value
+      const validColor = availableColors.includes(defaultColor) ? defaultColor : COLORS[0].value
+      
       setFontFamily(textSettings.fontFamily)
       setFontSize(textSettings.fontSize || 24)
-      setColor(textSettings.color || COLORS[0].value)
+      setColor(validColor)
       setFontWeight(textSettings.fontWeight || 'normal')
       setFontStyle('normal')
       setTextDecoration(textSettings.textDecoration || 'none')

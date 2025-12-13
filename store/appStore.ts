@@ -95,7 +95,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   textSettings: {
     fontFamily: 'Arial, sans-serif',
     fontSize: 24,
-    color: '#000000',
+    color: '#4A4A4A', // Dark gray - matches first color in TextTool COLORS array
     fontWeight: 'normal',
     textDecoration: 'none',
   },
