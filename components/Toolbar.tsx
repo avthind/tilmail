@@ -40,8 +40,8 @@ export default function Toolbar() {
           }
         } else {
           return // Don't interfere with typing
-        }
-      }
+    }
+  }
 
       // Escape - Deselect and close tools
       if (e.key === 'Escape') {

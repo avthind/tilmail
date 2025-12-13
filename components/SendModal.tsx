@@ -47,15 +47,19 @@ export default function SendModal({ onClose }: SendModalProps) {
       hasGeneratedRef.current = true
 
       try {
-        console.log('Saving card with decorations:', decorations)
         const cardId = await saveCard(decorations)
-        console.log('Card saved with ID:', cardId)
         const shareUrl = `${window.location.origin}/card/${cardId}`
         setShareLink(shareUrl)
-        console.log('Share URL generated:', shareUrl)
       } catch (err) {
-        console.error('Error saving card:', err)
-        setError(`Failed to generate link: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        // Log to error tracking if available
+        if (typeof window !== 'undefined') {
+          const Sentry = (window as any).Sentry || (window as any).__SENTRY__
+          if (Sentry && Sentry.captureException) {
+            Sentry.captureException(err)
+          }
+        }
+        setError(`Failed to generate link: ${errorMessage}`)
         hasGeneratedRef.current = false // Allow retry on error
       } finally {
         setLoading(false)
@@ -72,7 +76,13 @@ export default function SendModal({ onClose }: SendModalProps) {
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
       } catch (err) {
-        console.error('Failed to copy:', err)
+        // Log to error tracking if available
+        if (typeof window !== 'undefined') {
+          const Sentry = (window as any).Sentry || (window as any).__SENTRY__
+          if (Sentry && Sentry.captureException) {
+            Sentry.captureException(err)
+          }
+        }
       }
     }
   }

@@ -114,8 +114,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = get()
     // Add the decoration first
     const newDecorations = {
-      ...state.decorations,
-      [face]: [...state.decorations[face], decoration],
+        ...state.decorations,
+        [face]: [...state.decorations[face], decoration],
     }
     
     // Save the NEW state (with decoration) to history

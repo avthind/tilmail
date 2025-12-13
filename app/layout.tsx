@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import ClientInit from '@/components/ClientInit'
 
 export const metadata: Metadata = {
   title: 'TILmail',
@@ -20,7 +22,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ClientInit />
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </body>
     </html>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import CardCanvas from '@/components/CardCanvas'
 import Toolbar from '@/components/Toolbar'
 import SendModal from '@/components/SendModal'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useAppStore } from '@/store/appStore'
 import { loadCard } from '@/lib/firebase'
 import styles from './page.module.css'
@@ -27,8 +28,6 @@ export default function Home() {
         const href = window.location.href
         const hash = window.location.hash
         
-        console.log('[Card Viewer] Checking URL:', { pathname, href, hash })
-        
         // Try to match /card/ID pattern from the actual URL
         let cardId: string | null = null
         
@@ -36,7 +35,6 @@ export default function Home() {
         const pathMatch = pathname.match(/\/card\/([^\/\?]+)/)
         if (pathMatch && pathMatch[1]) {
           cardId = pathMatch[1]
-          console.log('[Card Viewer] Found card ID in pathname:', cardId)
         }
         
         // Method 2: Check full href (most reliable - works even with Firebase rewrites)
@@ -44,7 +42,6 @@ export default function Home() {
           const hrefMatch = href.match(/\/card\/([^\/\?\#]+)/)
           if (hrefMatch && hrefMatch[1]) {
             cardId = hrefMatch[1]
-            console.log('[Card Viewer] Found card ID in href:', cardId)
           }
         }
         
@@ -53,12 +50,10 @@ export default function Home() {
           const hashMatch = hash.match(/\/card\/([^\/\?]+)/)
           if (hashMatch && hashMatch[1]) {
             cardId = hashMatch[1]
-            console.log('[Card Viewer] Found card ID in hash:', cardId)
           }
         }
         
         if (cardId) {
-          console.log('[Card Viewer] Card ID detected:', cardId)
           setIsCardViewer(true)
           setCardLoading(true)
           setCardError(null)
@@ -74,7 +69,6 @@ export default function Home() {
           // Load the card data
           loadCard(cardId)
             .then((data) => {
-              console.log('[Card Viewer] Card loaded:', data)
               if (data && data.decorations) {
                 // Ensure front and back are arrays
                 const normalizedDecorations = {
@@ -82,20 +76,26 @@ export default function Home() {
                   back: Array.isArray(data.decorations.back) ? data.decorations.back : []
                 }
                 useAppStore.setState({ decorations: normalizedDecorations })
-                console.log('[Card Viewer] Decorations set:', normalizedDecorations)
               } else {
-                console.warn('[Card Viewer] No decorations in card data')
                 setCardError('Card has no decorations')
               }
               setCardLoading(false)
             })
             .catch((err) => {
-              console.error('[Card Viewer] Error loading card:', err)
-              setCardError(`Card not found: ${err instanceof Error ? err.message : 'Unknown error'}`)
+              const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+              // Log to error tracking if available
+              if (typeof window !== 'undefined') {
+                const Sentry = (window as any).Sentry || (window as any).__SENTRY__
+                if (Sentry && Sentry.captureException) {
+                  Sentry.captureException(err, {
+                    tags: { component: 'CardViewer', action: 'loadCard' }
+                  })
+                }
+              }
+              setCardError(`Card not found: ${errorMessage}`)
               setCardLoading(false)
             })
         } else {
-          console.log('[Card Viewer] No card ID found in URL')
           setIsCardViewer(false)
         }
       }
@@ -118,7 +118,6 @@ export default function Home() {
 
   // If this is a card viewer, show viewer UI instead of editor
   if (isCardViewer) {
-    console.log('[Card Viewer] Rendering viewer mode', { cardLoading, cardError, hasDecorations: decorations && (decorations.front?.length > 0 || decorations.back?.length > 0) })
     
     const handleFlip = () => {
       setMode(mode === 'front' ? 'back' : 'front')
@@ -126,19 +125,63 @@ export default function Home() {
 
     if (cardLoading) {
       return (
-        <div className={cardStyles.container}>
-          <div className={cardStyles.loading}>Loading card...</div>
+        <div className={cardStyles.container} style={{ minHeight: '100vh', background: 'var(--pale-mint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              border: '4px solid var(--light-mint)', 
+              borderTop: '4px solid var(--medium-teal)', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px'
+            }}></div>
+            <div style={{ fontSize: '16px', color: 'var(--dark-teal)', fontWeight: 500 }}>
+              Loading card...
+            </div>
+            <style jsx>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
         </div>
       )
     }
 
     if (cardError) {
       return (
-        <div className={cardStyles.container}>
-          <div className={cardStyles.error}>{cardError}</div>
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <a href="/" style={{ color: 'var(--dark-teal)', textDecoration: 'underline' }}>
-              Go to Home
+        <div className={cardStyles.container} style={{ minHeight: '100vh', background: 'var(--pale-mint)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', maxWidth: '400px', padding: '20px' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+            <h2 style={{ fontSize: '24px', fontWeight: 600, color: 'var(--dark-teal)', marginBottom: '12px' }}>
+              Card Not Found
+            </h2>
+            <p style={{ fontSize: '16px', color: 'var(--grey-600)', marginBottom: '24px' }}>
+              {cardError}
+            </p>
+            <a 
+              href="/" 
+              style={{ 
+                display: 'inline-block',
+                padding: '12px 24px',
+                background: 'var(--medium-teal)',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '4px',
+                fontSize: '16px',
+                fontWeight: 600,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'var(--dark-teal)'
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'var(--medium-teal)'
+              }}
+            >
+              Create Your Own Card
             </a>
           </div>
         </div>

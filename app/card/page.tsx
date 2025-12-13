@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import CardCanvas from '@/components/CardCanvas'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { loadCard } from '@/lib/firebase'
 import { useAppStore } from '@/store/appStore'
 import styles from './card.module.css'
@@ -22,7 +23,6 @@ function CardViewerContent() {
     const id = cardId || pathCardId || ''
     
     if (id && id !== 'card' && id.length > 0) {
-      console.log('Loading card with ID:', id)
       // Clear existing decorations first
       useAppStore.setState({ 
         decorations: { front: [], back: [] },
@@ -33,7 +33,6 @@ function CardViewerContent() {
       
       loadCard(id)
         .then((data) => {
-          console.log('Card loaded:', data)
           if (data && data.decorations) {
             // Ensure front and back are arrays
             const normalizedDecorations = {
@@ -41,15 +40,21 @@ function CardViewerContent() {
               back: Array.isArray(data.decorations.back) ? data.decorations.back : []
             }
             useAppStore.setState({ decorations: normalizedDecorations })
-            console.log('Decorations set:', normalizedDecorations)
           } else {
-            console.warn('No decorations in card data')
             setError('Card has no decorations')
           }
           setLoading(false)
         })
         .catch((err) => {
-          console.error('Error loading card:', err)
+          // Log to error tracking if available
+          if (typeof window !== 'undefined') {
+            const Sentry = (window as any).Sentry || (window as any).__SENTRY__
+            if (Sentry && Sentry.captureException) {
+              Sentry.captureException(err, {
+                tags: { component: 'CardViewerPage', action: 'loadCard' }
+              })
+            }
+          }
           setError('Card not found')
           setLoading(false)
         })
@@ -155,13 +160,34 @@ function CardViewerContent() {
 
 export default function CardViewerPage() {
   return (
-    <Suspense fallback={
-      <div className={styles.container}>
-        <div className={styles.loading}>Loading card...</div>
-      </div>
-    }>
-      <CardViewerContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={
+        <div className={styles.container} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pale-mint)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              border: '4px solid var(--light-mint)', 
+              borderTop: '4px solid var(--medium-teal)', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px'
+            }}></div>
+            <div style={{ fontSize: '16px', color: 'var(--dark-teal)', fontWeight: 500 }}>
+              Loading card...
+            </div>
+            <style jsx>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
+          </div>
+        </div>
+      }>
+        <CardViewerContent />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
