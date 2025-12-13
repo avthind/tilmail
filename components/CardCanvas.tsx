@@ -16,6 +16,7 @@ interface CardCanvasProps {
 
 export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const {
     mode,
     currentTool,
@@ -456,7 +457,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           const lineHeight = fontSize * 1.2
           // Calculate width of longest line
           let maxTextWidth = 0
-          lines.forEach(line => {
+          lines.forEach((line: string) => {
             const lineWidth = ctx.measureText(line).width
             maxTextWidth = Math.max(maxTextWidth, lineWidth)
           })
@@ -524,9 +525,15 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       if (selectedDecoration && currentTool) {
         const currentDec = faceDecorations.find(d => d.id === selectedDecoration.id)
         if (currentDec) {
-          const needsIndicator = 
-            (currentTool === 'grab' && (currentDec.type === 'sticker' || currentDec.type === 'text' || currentDec.type === 'drawing')) ||
-            (currentTool === 'text' && currentDec.type === 'text')
+          // Check if we need to show selection indicator based on tool and decoration type
+          // Use type assertion to avoid TypeScript narrowing issues in this context
+          const tool = currentTool as 'sticker' | 'text' | 'draw' | 'grab' | null
+          let needsIndicator = false
+          if (tool === 'grab') {
+            needsIndicator = currentDec.type === 'sticker' || currentDec.type === 'text' || currentDec.type === 'drawing'
+          } else if (tool === 'text') {
+            needsIndicator = currentDec.type === 'text'
+          }
           
           if (needsIndicator && !idsToUpdate.includes(currentDec.id)) {
             idsToUpdate.push(currentDec.id)
@@ -675,7 +682,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           const lineHeight = fontSize * 1.2
           // Calculate width of longest line
           let maxTextWidth = 0
-          lines.forEach(line => {
+          lines.forEach((line: string) => {
             const lineWidth = ctx.measureText(line).width
             maxTextWidth = Math.max(maxTextWidth, lineWidth)
           })
@@ -684,18 +691,19 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             
           // Draw selection border
           // Only show borders when the appropriate tool is explicitly active and not in read-only mode
-          // Text tool: full line border (solid) for selection or editing
+          // Text tool: full line border (solid) for selection (but NOT when editing - textarea has its own border)
           // IMPORTANT: Only draw text border when text tool is ACTIVE
           // Use strict equality and multiple checks to prevent border in other tools
           if (!readOnly && decoration.type === 'text' && currentTool === 'text') {
-            // Triple-check: only show if text tool is active AND (editing or selected)
-            // This ensures border never shows in other tools
+            // Triple-check: only show if text tool is active AND selected (but NOT editing)
+            // When editing, the textarea has its own border, so we don't need a canvas border
+            // This ensures border never shows in other tools and doesn't duplicate when editing
             const toolIsText = currentTool === 'text'
             const isTextEditing = toolIsText && editingTextId === decoration.id
             const isTextSelected = toolIsText && selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
             
-            // Final defensive check: ONLY draw if currentTool is explicitly 'text'
-            if (toolIsText && (isTextEditing || isTextSelected)) {
+            // Only draw canvas border when selected but NOT editing (textarea has its own border when editing)
+            if (toolIsText && isTextSelected && !isTextEditing) {
               ctx.strokeStyle = '#6a9c89'
               ctx.lineWidth = 2
               ctx.setLineDash([]) // Solid line
@@ -755,7 +763,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             const totalHeight = lines.length * lineHeight
             const startY = y - (totalHeight - lineHeight) / 2 // Center multi-line text vertically
             
-            lines.forEach((line, index) => {
+            lines.forEach((line: string, index: number) => {
               const lineY = startY + (index * lineHeight)
               ctx.fillText(line, x, lineY)
             })
@@ -855,7 +863,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     ;(async () => {
       // Always redraw all decorations when draw tool, text tool, or grab tool is active or when drawing to ensure they're visible
       // For sticker tool, only redraw when switching to it (handled by toolChanged in needsFullRedraw)
-      if (needsFullRedraw || isCurrentlyDrawing || currentTool === 'draw' || currentTool === 'text' || currentTool === 'grab') {
+      const tool = currentTool as 'sticker' | 'text' | 'draw' | 'grab' | null
+      if (needsFullRedraw || isCurrentlyDrawing || tool === 'draw' || tool === 'text' || tool === 'grab') {
         // Full redraw - draw all decorations
         await drawDecorations()
       } else if (idsToUpdate.length > 0) {
@@ -1011,7 +1020,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         const lineHeight = fontSize * 1.2
         // Calculate width of longest line
         let maxTextWidth = 0
-        lines.forEach(line => {
+        lines.forEach((line: string) => {
           const lineWidth = ctx.measureText(line).width
           maxTextWidth = Math.max(maxTextWidth, lineWidth)
         })
@@ -1091,8 +1100,22 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Text tool: clicking on existing text selects it
     if (decoration && decoration.type === 'text' && currentTool === 'text') {
       const face = displayMode === 'front' ? 'front' : 'back'
+      const isAlreadySelected = selectedDecoration?.face === face && selectedDecoration?.id === decoration.id
+      
       setSelectedDecoration({ face, id: decoration.id })
-      // Start editing if double-clicked, otherwise just select
+      
+      // If text is already selected, single-click should start editing (industry standard)
+      // Otherwise, just select it (user can double-click or click again to edit)
+      if (isAlreadySelected) {
+        setEditingTextId(decoration.id)
+        setEditingTextValue(decoration.data.text || '')
+        // Trigger width calculation after a brief delay to ensure textarea is rendered
+        setTimeout(() => {
+          if (textareaRef.current) {
+            handleTextInputInput({ currentTarget: textareaRef.current } as any)
+          }
+        }, 0)
+      }
       return
     }
     
@@ -1247,9 +1270,19 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           },
         }
         addDecoration(face, newDecoration)
-        // Auto-select the new text (but don't start editing immediately)
-        // User can double-click to edit if they want
-        setSelectedDecoration({ face, id: newDecoration.id })
+        // Auto-select and immediately start editing new text (industry standard)
+        // Use a small delay to ensure the decoration is in the store before we try to find it
+        setTimeout(() => {
+          setSelectedDecoration({ face, id: newDecoration.id })
+          setEditingTextId(newDecoration.id)
+          setEditingTextValue('Your text…')
+          // Trigger width calculation after a brief delay to ensure textarea is rendered
+          setTimeout(() => {
+            if (textareaRef.current) {
+              handleTextInputInput({ currentTarget: textareaRef.current } as any)
+            }
+          }, 0)
+        }, 0)
       } else {
         setSelectedDecoration(null)
       }
@@ -1508,6 +1541,12 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       setSelectedDecoration({ face, id: decoration.id })
       setEditingTextId(decoration.id)
       setEditingTextValue(decoration.data.text || '')
+      // Trigger width calculation after a brief delay to ensure textarea is rendered
+      setTimeout(() => {
+        if (textareaRef.current) {
+          handleTextInputInput({ currentTarget: textareaRef.current } as any)
+        }
+      }, 0)
     }
   }
 
@@ -1592,10 +1631,45 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   }
   
   const handleTextInputInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
-    // Auto-resize textarea to fit content
+    // Auto-resize textarea to fit content (height and width)
     const textarea = e.currentTarget
+    
+    // Reset height to auto to get accurate scrollHeight
     textarea.style.height = 'auto'
     textarea.style.height = `${textarea.scrollHeight}px`
+    
+    // Calculate width based on content
+    // Use canvas to measure text width for accurate sizing
+    if (canvasRef.current && selectedTextDecoration) {
+      const ctx = canvasRef.current.getContext('2d')
+      if (ctx) {
+        const fontSize = selectedTextDecoration.data.fontSize || 24
+        const fontFamily = selectedTextDecoration.data.fontFamily || 'Arial, sans-serif'
+        const fontWeight = selectedTextDecoration.data.fontWeight || 'normal'
+        const fontStyle = selectedTextDecoration.data.fontStyle || 'normal'
+        
+        ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`
+        
+        // Measure the longest line in the text
+        const lines = textarea.value.split('\n')
+        let maxWidth = 0
+        lines.forEach((line: string) => {
+          const metrics = ctx.measureText(line || ' ')
+          const width = metrics.width
+          if (width > maxWidth) {
+            maxWidth = width
+          }
+        })
+        
+        // Set width with some padding, but no fixed min-width
+        // Ensure minimum width for empty text (at least 1 character width)
+        const minWidth = ctx.measureText(' ').width
+        const calculatedWidth = Math.max(maxWidth, minWidth) + 20 // 20px padding
+        const maxWidthLimit = CARD_WIDTH - 40
+        
+        textarea.style.width = `${Math.min(calculatedWidth, maxWidthLimit)}px`
+      }
+    }
   }
 
   const handleTextInputBlur = () => {
@@ -1662,6 +1736,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         />
         {selectedTextDecoration && editingTextId && (
           <textarea
+            ref={textareaRef}
             value={editingTextValue}
             onChange={handleTextInputChange}
             onInput={handleTextInputInput}
@@ -1672,6 +1747,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               if (editingTextValue === 'Your text…') {
                 e.target.select()
               }
+              // Calculate initial width on focus
+              handleTextInputInput(e as any)
             }}
             className={styles.textInput}
             style={{
@@ -1685,13 +1762,13 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               textDecoration: selectedTextDecoration.data.textDecoration === 'underline' ? 'underline' : 'none',
               transform: 'translate(-50%, -50%)',
               background: 'transparent',
-              border: 'none',
+              border: '1px solid rgba(106, 156, 137, 0.3)',
+              borderRadius: '2px',
               resize: 'none',
               overflow: 'hidden',
               width: 'auto',
-              minWidth: '200px',
               maxWidth: `${CARD_WIDTH - 40}px`,
-              padding: '0',
+              padding: '2px 4px',
               textAlign: 'center',
               lineHeight: '1.2',
               whiteSpace: 'pre-wrap',
