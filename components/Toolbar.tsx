@@ -129,10 +129,18 @@ export default function Toolbar() {
 
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      // Don't close if clicking on canvas or inside toolbar/drawer
-      if (target.closest('canvas') || target.closest(`.${styles.rightToolbar}`) || target.closest(`.${styles.toolDrawer}`)) {
+      // Don't close if clicking on canvas, canvas container, or inside toolbar/drawer
+      // Check for canvas element or any parent that might contain the canvas
+      const isCanvasClick = target.tagName === 'CANVAS' || 
+                           target.closest('canvas') || 
+                           target.closest('[class*="cardCanvas"]') ||
+                           target.closest('[class*="CardCanvas"]')
+      
+      if (isCanvasClick || target.closest(`.${styles.rightToolbar}`) || target.closest(`.${styles.toolDrawer}`)) {
         return
       }
+      
+      // Only close tool if not clicking on canvas-related elements
       setTool(null)
       // Clear sticker selection when closing tool
       if (currentTool === 'sticker') {
@@ -140,8 +148,9 @@ export default function Toolbar() {
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+    // Use capture phase to check before canvas handlers, but delay the actual close
+    document.addEventListener('mousedown', handleClickOutside, true)
+    return () => document.removeEventListener('mousedown', handleClickOutside, true)
   }, [currentTool, setTool, setSelectedSticker])
 
   const handleToolClick = (tool: 'sticker' | 'text' | 'draw' | 'grab') => {

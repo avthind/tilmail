@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useState } from 'react'
-import { useAppStore } from '@/store/appStore'
+import { useAppStore, type HistoryState } from '@/store/appStore'
 import { getStickerData } from './StickerPicker'
 import styles from './CardCanvas.module.css'
 
@@ -27,7 +27,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     addDecoration,
     textSettings,
     updateDecoration,
+    updateDecorationWithoutHistory,
     updateDecorationPosition,
+    saveDecorationPositionToHistory,
+    addToHistory,
     drawSettings,
   } = useAppStore()
   
@@ -35,6 +38,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const [currentPath, setCurrentPath] = useState<{ x: number; y: number }[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
+  const [dragOriginalDecoration, setDragOriginalDecoration] = useState<any>(null)
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
   const [editingTextValue, setEditingTextValue] = useState('')
   const [isFlipping, setIsFlipping] = useState(false)
@@ -121,6 +125,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       })
     }
   }, [currentTool, editingTextId, editingTextValue, decorations, updateDecoration, removeDecoration])
+  
+  // Note: Placeholder text cleanup is handled in the tool switch effect above
+  // We don't clean up after undo/redo to avoid creating history loops
   
   // Force canvas redraw when currentTool changes to ensure borders update
   useEffect(() => {
@@ -355,9 +362,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // For selection/tool changes, we'll do incremental updates
     // Also force full redraw if drawSettings changed to ensure drawings stay visible
     // Force full redraw when tool changes to ensure all decorations (especially drawings) stay visible
-    // Also force full redraw when draw tool is active to ensure drawings are always visible
+    // Also force full redraw when draw tool or text tool is active to ensure decorations are always visible
     // For sticker tool, toolChanged handles it when switching to it, and decorationsChanged handles it when placing
-    const needsFullRedraw = decorationsChanged || modeChanged || drawSettingsChanged || toolChanged || currentTool === 'draw'
+    // Include grab tool to ensure decorations are always visible when moving/selecting
+    const needsFullRedraw = decorationsChanged || modeChanged || drawSettingsChanged || toolChanged || currentTool === 'draw' || currentTool === 'text' || currentTool === 'grab'
     
     // Track which decorations need incremental updates
     let idsToUpdate: string[] = []
@@ -701,9 +709,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
 
     // Draw decorations (full redraw or incremental)
     ;(async () => {
-      // Always redraw all decorations when draw tool is active or when drawing to ensure they're visible
+      // Always redraw all decorations when draw tool, text tool, or grab tool is active or when drawing to ensure they're visible
       // For sticker tool, only redraw when switching to it (handled by toolChanged in needsFullRedraw)
-      if (needsFullRedraw || isCurrentlyDrawing || currentTool === 'draw') {
+      if (needsFullRedraw || isCurrentlyDrawing || currentTool === 'draw' || currentTool === 'text' || currentTool === 'grab') {
         // Full redraw - draw all decorations
         await drawDecorations()
       } else if (idsToUpdate.length > 0) {
@@ -826,6 +834,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   }
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Stop event propagation to prevent click-outside handlers from closing the tool
+    e.stopPropagation()
+    
     const coords = getCanvasCoordinates(e)
     if (!coords) return
 
@@ -855,6 +866,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       setSelectedDecoration({ face, id: decoration.id })
       setIsDragging(true)
       setDragStart({ x: coords.x, y: coords.y })
+      // Store original decoration state for accurate delta calculation
+      setDragOriginalDecoration(JSON.parse(JSON.stringify(decoration)))
     } else if (!decoration) {
       // Clicked on empty space
       // Check if we need to remove placeholder text that was never edited
@@ -1032,30 +1045,33 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     }
 
     // Drag decoration (only in grab mode)
-    if (isDragging && selectedDecoration && dragStart && currentTool === 'grab') {
+    if (isDragging && selectedDecoration && dragStart && dragOriginalDecoration && currentTool === 'grab') {
       const face = selectedDecoration.face
       const decoration = decorations[face].find(d => d.id === selectedDecoration.id)
-      if (decoration) {
+      if (decoration && dragOriginalDecoration) {
+        // Calculate delta from original mouse position to current mouse position
         const deltaX = coords.x - dragStart.x
         const deltaY = coords.y - dragStart.y
+        const newX = dragOriginalDecoration.x + deltaX
+        const newY = dragOriginalDecoration.y + deltaY
         
-        if (decoration.type === 'drawing' && decoration.data.paths) {
-          // For drawings, update all path points
-          const updatedPaths = decoration.data.paths.map((path: number[][]) =>
+        if (decoration.type === 'drawing' && dragOriginalDecoration.data.paths) {
+          // For drawings, update all path points from original paths
+          const updatedPaths = dragOriginalDecoration.data.paths.map((path: number[][]) =>
             path.map((point: number[]) => [point[0] + deltaX, point[1] + deltaY])
           )
-          updateDecoration(face, decoration.id, {
-            ...decoration.data,
+          // Update without saving to history (will save when drag ends)
+          updateDecorationWithoutHistory(face, decoration.id, {
+            ...dragOriginalDecoration.data,
             paths: updatedPaths,
           })
           // Also update the x, y position
-          updateDecorationPosition(face, decoration.id, decoration.x + deltaX, decoration.y + deltaY)
+          updateDecorationPosition(face, decoration.id, newX, newY)
         } else if (decoration.type === 'sticker' || decoration.type === 'text') {
           // Update position directly for stickers and text
-          updateDecorationPosition(face, decoration.id, decoration.x + deltaX, decoration.y + deltaY)
+          updateDecorationPosition(face, decoration.id, newX, newY)
         }
       }
-      setDragStart({ x: coords.x, y: coords.y })
     }
   }
 
@@ -1203,8 +1219,18 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       isSavingDrawingRef.current = false
     }
     setIsDrawing(false)
+    
+    // Save to history when drag ends (if we were dragging)
+    if (isDragging && selectedDecoration && currentTool === 'grab') {
+      // The decoration is already updated (via updateDecorationWithoutHistory/updateDecorationPosition during drag)
+      // Save current state to history - this should preserve all decorations
+      const face = selectedDecoration.face
+      saveDecorationPositionToHistory(face, selectedDecoration.id)
+    }
+    
     setIsDragging(false)
     setDragStart(null)
+    setDragOriginalDecoration(null)
     // Clear hover state on mouse up
     setHoveredDecoration(null)
   }
@@ -1268,10 +1294,11 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     
     setEditingTextValue(newValue)
     
-    // Update canvas text in real-time as user types
+    // Update canvas text in real-time as user types (without saving to history)
+    // History will be saved when editing is complete (on blur/Enter)
     if (selectedTextDecoration && editingTextId) {
       const face = selectedDecoration!.face
-      updateDecoration(face, editingTextId, {
+      updateDecorationWithoutHistory(face, editingTextId, {
         ...selectedTextDecoration.data,
         text: newValue || '',
       })
@@ -1290,7 +1317,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       setEditingTextValue(newValue)
       if (selectedTextDecoration && editingTextId) {
         const face = selectedDecoration!.face
-        updateDecoration(face, editingTextId, {
+        // Update without history - will save to history on blur/Enter
+        updateDecorationWithoutHistory(face, editingTextId, {
           ...selectedTextDecoration.data,
           text: newValue,
         })
@@ -1303,13 +1331,17 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     }
     
     if (e.key === 'Enter') {
-      // Save text before blurring to ensure it's visible immediately
+      // Text is already updated via updateDecorationWithoutHistory during typing
+      // Just save current state to history (state was saved when editing started)
       if (editingTextId && selectedTextDecoration) {
         const face = selectedDecoration!.face
-        updateDecoration(face, editingTextId, {
+        // Ensure text is saved (it's already updated during typing)
+        updateDecorationWithoutHistory(face, editingTextId, {
           ...selectedTextDecoration.data,
           text: editingTextValue || '',
         })
+        // Save current state to history
+        addToHistory()
       }
       // Small delay to ensure decoration is updated before blur
       setTimeout(() => {
@@ -1336,12 +1368,16 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         if (finalText === 'Your text…' || finalText.trim() === '') {
           removeDecoration(face, editingTextId)
         } else {
-          // Save the text value from the input field
-          // This ensures the text is saved before we clear editingTextId
-          updateDecoration(face, editingTextId, {
+          // Text is already updated via updateDecorationWithoutHistory during typing
+          // Just ensure it's saved and update history
+          // State was already saved to history when editing started
+          // Final update to ensure text is correct
+          updateDecorationWithoutHistory(face, editingTextId, {
             ...decoration.data,
             text: finalText,
           })
+          // Save current state to history (with the edited text)
+          addToHistory()
         }
       }
     }

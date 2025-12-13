@@ -1,6 +1,12 @@
 add stickers/categories
 
-tools working/fixes
+sticker tool: triggers too many redraws across all decorations
 
-viewer mode working/fixes
-^add sign up
+text tool: selection box color and style
+
+global undo gets stuck on text box
+global undo doesnt work on stickers
+
+grab mode
+
+view mode

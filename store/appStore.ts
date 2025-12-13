@@ -54,7 +54,9 @@ interface AppState {
   addDecoration: (face: 'front' | 'back', decoration: Decoration) => void
   removeDecoration: (face: 'front' | 'back', id: string) => void
   updateDecoration: (face: 'front' | 'back', id: string, data: any) => void
+  updateDecorationWithoutHistory: (face: 'front' | 'back', id: string, data: any) => void
   updateDecorationPosition: (face: 'front' | 'back', id: string, x: number, y: number) => void
+  saveDecorationPositionToHistory: (face: 'front' | 'back', id: string) => void
   setShowSendModal: (show: boolean) => void
   // History management
   addToHistory: () => void
@@ -174,6 +176,17 @@ export const useAppStore = create<AppState>((set, get) => ({
       historyIndex: limitedHistory.length - 1,
     })
   },
+  updateDecorationWithoutHistory: (face, id, data) => {
+    // Update decoration without saving to history (for real-time updates like typing)
+    set((state) => ({
+      decorations: {
+        ...state.decorations,
+        [face]: state.decorations[face].map((d) =>
+          d.id === id ? { ...d, data } : d
+        ),
+      },
+    }))
+  },
   updateDecorationPosition: (face, id, x, y) => {
     set((state) => ({
       decorations: {
@@ -184,6 +197,29 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     }))
     // Note: Position updates don't add to history (too frequent during drag)
+    // Use saveDecorationPositionToHistory() when drag ends
+  },
+  saveDecorationPositionToHistory: (face, id) => {
+    // Save current state to history after position change (when drag ends)
+    const state = get()
+    const decoration = state.decorations[face].find((d) => d.id === id)
+    if (!decoration) return
+    
+    // Save current state to history
+    const historyState: HistoryState = {
+      decorations: JSON.parse(JSON.stringify(state.decorations)),
+      timestamp: Date.now(),
+    }
+    const newHistory = state.history.slice(0, state.historyIndex + 1)
+    newHistory.push(historyState)
+    const limitedHistory = newHistory.slice(-MAX_HISTORY)
+    
+    // Only update history and historyIndex, preserve all other state including decorations
+    set((currentState) => ({
+      ...currentState, // Preserve all existing state (decorations, mode, etc.)
+      history: limitedHistory,
+      historyIndex: limitedHistory.length - 1,
+    }))
   },
   setShowSendModal: (show) => set({ showSendModal: show }),
   addToHistory: () => {
@@ -208,10 +244,42 @@ export const useAppStore = create<AppState>((set, get) => ({
   undo: () => {
     const state = get()
     if (state.historyIndex > 0) {
-      const newIndex = state.historyIndex - 1
-      const previousState = state.history[newIndex]
+      // Find the previous state that has non-placeholder content
+      let newIndex = state.historyIndex - 1
+      let previousState = state.history[newIndex]
+      
+      // Skip states that only contain placeholder text
+      while (newIndex > 0) {
+        const filteredCount = 
+          previousState.decorations.front.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length +
+          previousState.decorations.back.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length
+        
+        // If this state has non-placeholder content, use it
+        if (filteredCount > 0) {
+          break
+        }
+        
+        // Otherwise, skip to the previous state
+        newIndex--
+        if (newIndex >= 0) {
+          previousState = state.history[newIndex]
+        } else {
+          break
+        }
+      }
+      
+      // Filter out placeholder text when restoring from history
+      const filteredDecorations: FaceDecorations = {
+        front: previousState.decorations.front.filter(
+          (d) => !(d.type === 'text' && d.data.text === 'Your text…')
+        ),
+        back: previousState.decorations.back.filter(
+          (d) => !(d.type === 'text' && d.data.text === 'Your text…')
+        ),
+      }
+      
       set({
-        decorations: JSON.parse(JSON.stringify(previousState.decorations)),
+        decorations: JSON.parse(JSON.stringify(filteredDecorations)),
         historyIndex: newIndex,
         selectedDecoration: null, // Deselect on undo
       })
@@ -220,10 +288,42 @@ export const useAppStore = create<AppState>((set, get) => ({
   redo: () => {
     const state = get()
     if (state.historyIndex < state.history.length - 1) {
-      const newIndex = state.historyIndex + 1
-      const nextState = state.history[newIndex]
+      // Find the next state that has non-placeholder content
+      let newIndex = state.historyIndex + 1
+      let nextState = state.history[newIndex]
+      
+      // Skip states that only contain placeholder text
+      while (newIndex < state.history.length - 1) {
+        const filteredCount = 
+          nextState.decorations.front.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length +
+          nextState.decorations.back.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length
+        
+        // If this state has non-placeholder content, use it
+        if (filteredCount > 0) {
+          break
+        }
+        
+        // Otherwise, skip to the next state
+        newIndex++
+        if (newIndex < state.history.length) {
+          nextState = state.history[newIndex]
+        } else {
+          break
+        }
+      }
+      
+      // Filter out placeholder text when restoring from history
+      const filteredDecorations: FaceDecorations = {
+        front: nextState.decorations.front.filter(
+          (d) => !(d.type === 'text' && d.data.text === 'Your text…')
+        ),
+        back: nextState.decorations.back.filter(
+          (d) => !(d.type === 'text' && d.data.text === 'Your text…')
+        ),
+      }
+      
       set({
-        decorations: JSON.parse(JSON.stringify(nextState.decorations)),
+        decorations: JSON.parse(JSON.stringify(filteredDecorations)),
         historyIndex: newIndex,
         selectedDecoration: null, // Deselect on redo
       })
