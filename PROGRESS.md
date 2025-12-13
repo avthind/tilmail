@@ -1,6 +1,8 @@
 add stickers/categories
-text tool drawer default color section show
 
+mobile view test and fix
 view mode
+
+deploy on domain // send to ppl
 
 later: rotate/resize, user auth, prev tool drawer stays open when flip sides

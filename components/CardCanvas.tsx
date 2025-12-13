@@ -45,7 +45,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const [isFlipping, setIsFlipping] = useState(false)
   const [displayMode, setDisplayMode] = useState(mode) // Mode to display (may lag behind actual mode during flip)
   const [hoveredDecoration, setHoveredDecoration] = useState<{ face: 'front' | 'back', id: string } | null>(null)
-  const lastTapRef = useRef<number>(0)
+  const lastTapRef = useRef<{ timestamp: number; x: number; y: number } | null>(null)
   const justFinishedDrawingRef = useRef(false) // Track if we just finished drawing to skip redraw
   const previousModeRef = useRef(mode)
 
@@ -1503,7 +1503,63 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     handleMouseMove(e as any)
   }
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    // Disable interactions in read-only mode
+    if (readOnly) {
+      handleMouseUp()
+      return
+    }
+
+    // Only detect double-tap when text tool is active
+    if (currentTool === 'text') {
+      const coords = getCanvasCoordinates(e)
+      if (coords) {
+        const now = Date.now()
+        const lastTap = lastTapRef.current
+
+        // Check if this is a double-tap
+        // Double-tap: two taps within 300ms and within 50px of each other
+        if (lastTap && 
+            (now - lastTap.timestamp) < 300 &&
+            Math.abs(coords.x - lastTap.x) < 50 &&
+            Math.abs(coords.y - lastTap.y) < 50) {
+          
+          // It's a double-tap! Find text decoration and edit it
+          const decoration = findDecorationAtPoint(coords)
+          if (decoration && decoration.type === 'text') {
+            const face = displayMode === 'front' ? 'front' : 'back'
+            setSelectedDecoration({ face, id: decoration.id })
+            setEditingTextId(decoration.id)
+            setEditingTextValue(decoration.data.text || '')
+            // Trigger width calculation after a brief delay to ensure textarea is rendered
+            setTimeout(() => {
+              if (textareaRef.current) {
+                handleTextInputInput({ currentTarget: textareaRef.current } as any)
+              }
+            }, 0)
+            
+            // Clear the ref to prevent triple-tap issues
+            lastTapRef.current = null
+            // Don't continue with normal touch handling for double-tap
+            return
+          }
+        } else {
+          // Single tap - store for potential double-tap
+          lastTapRef.current = {
+            timestamp: now,
+            x: coords.x,
+            y: coords.y
+          }
+          
+          // Clear after timeout so next tap is treated as fresh
+          setTimeout(() => {
+            lastTapRef.current = null
+          }, 300)
+        }
+      }
+    }
+
+    // Continue with normal touch end handling
     handleMouseUp()
   }
 

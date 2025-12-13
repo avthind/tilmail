@@ -120,8 +120,31 @@ export default function Toolbar() {
   useEffect(() => {
     if (!currentTool) return
 
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
+    // Flag to prevent double-firing on devices that support both touch and mouse
+    let touchHandled = false
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      // Prevent double-firing: if this was already handled by touch, skip mouse event
+      if (e.type === 'mousedown' && touchHandled) {
+        return
+      }
+
+      // Get target from either mouse or touch event
+      const target = (e.target || 
+                     ((e as TouchEvent).touches?.[0]?.target) ||
+                     ((e as TouchEvent).changedTouches?.[0]?.target)) as HTMLElement
+      
+      if (!target) return
+
+      // Mark as touch-handled if it's a touch event
+      if (e.type === 'touchstart') {
+        touchHandled = true
+        // Clear flag after a delay to allow mouse event if it comes
+        setTimeout(() => {
+          touchHandled = false
+        }, 300)
+      }
+
       // Don't close if clicking on canvas, canvas container, or inside toolbar/drawer
       // Check for canvas element or any parent that might contain the canvas
       const isCanvasClick = target.tagName === 'CANVAS' || 
@@ -142,8 +165,13 @@ export default function Toolbar() {
     }
 
     // Use capture phase to check before canvas handlers, but delay the actual close
+    // Add both mouse and touch listeners for mobile support
     document.addEventListener('mousedown', handleClickOutside, true)
-    return () => document.removeEventListener('mousedown', handleClickOutside, true)
+    document.addEventListener('touchstart', handleClickOutside, true)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true)
+      document.removeEventListener('touchstart', handleClickOutside, true)
+    }
   }, [currentTool, setTool, setSelectedSticker])
 
   const handleToolClick = (tool: 'sticker' | 'text' | 'draw' | 'grab') => {
