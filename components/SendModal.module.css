@@ -22,14 +22,16 @@
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(106, 156, 137, 0.3);
   border-radius: 0;
-  padding: 16px;
-  max-width: 320px;
-  width: 100%;
+  padding: 12px;
+  max-width: fit-content;
+  width: fit-content;
+  min-width: auto;
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   position: relative;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   margin: auto;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
@@ -39,18 +41,18 @@
   }
 
   .modal {
-    max-width: calc(100vw - 40px);
-    width: calc(100vw - 40px);
+    max-width: fit-content;
+    width: fit-content;
     max-height: 90vh;
-    padding: 16px;
+    padding: 12px;
     border-radius: 0;
     margin: auto;
     box-sizing: border-box;
   }
 
   .title {
-    font-size: 18px;
-    margin-bottom: 12px;
+    font-size: 16px;
+    margin-bottom: 8px;
   }
 
   .shareLabel {
@@ -87,15 +89,21 @@
 
 @media (max-width: 480px) {
   .modal {
-    max-width: calc(100vw - 40px);
-    width: calc(100vw - 40px);
-    padding: 12px;
+    max-width: fit-content;
+    width: fit-content;
+    padding: 10px;
     max-height: 85vh;
     box-sizing: border-box;
   }
 
+  .closeButton {
+    top: 10px;
+    right: 10px;
+  }
+
   .title {
-    font-size: 16px;
+    font-size: 14px;
+    margin-bottom: 6px;
   }
 
   .shareIcons {
@@ -118,8 +126,8 @@
 
 .closeButton {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 12px;
   background: rgba(196, 218, 210, 0.2);
   border: 1px solid rgba(106, 156, 137, 0.4);
   font-size: 14px;
@@ -155,17 +163,24 @@
 }
 
 .title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 12px;
+  margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
+  padding-right: 28px;
   color: var(--pale-mint);
   font-family: 'Nunito', sans-serif;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .inputGroup {
@@ -297,6 +312,7 @@
 .shareSection {
   padding-top: 0;
   border-top: none;
+  width: 100%;
 }
 
 .shareLabel {
@@ -350,10 +366,11 @@
 }
 
 .shareButtons {
-  margin-top: 12px;
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  width: 100%;
 }
 
 .shareIcons {
@@ -362,6 +379,8 @@
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .shareIconButton {

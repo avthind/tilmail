@@ -338,9 +338,9 @@
   .rightToolbar {
     right: auto;
     left: 50%;
-    top: calc(50% - 170px - 52px);
+    top: calc(50% - 133.5px - 24px);
     bottom: auto;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(-50%);
     width: fit-content;
     height: fit-content;
     min-width: fit-content;
@@ -425,7 +425,7 @@
     max-width: none;
     border-radius: 2px;
     padding: 8px 8px;
-    top: calc(50% + 170px);
+    top: calc(50% + 133.5px + 24px + 26px);
     bottom: auto;
   }
 
@@ -469,10 +469,10 @@
 
 @media (max-width: 480px) {
   .rightToolbar {
-    top: calc(50% - 150px - 44px);
+    top: calc(50% - 120px - 20px);
     right: auto;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(-50%);
     width: fit-content;
     height: fit-content;
     min-width: fit-content;
@@ -526,7 +526,7 @@
     min-width: 188px;
     min-height: 44px;
     padding: 6px 6px;
-    top: calc(50% + 150px);
+    top: calc(50% + 120px + 20px + 22px);
     bottom: auto;
   }
 

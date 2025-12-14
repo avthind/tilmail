@@ -48,6 +48,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const lastTapRef = useRef<{ timestamp: number; x: number; y: number } | null>(null)
   const justFinishedDrawingRef = useRef(false) // Track if we just finished drawing to skip redraw
   const previousModeRef = useRef(mode)
+  const isTouchDrawingRef = useRef(false) // Track if current drawing is from touch events
   
   // Phase 1 Optimizations: Image cache and RAF batching
   const imageCache = useRef<Map<string, HTMLImageElement>>(new Map())
@@ -1435,12 +1436,16 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   }
 
   // Smooth path using moving average algorithm
-  const smoothPath = (points: { x: number; y: number }[], smoothing: number): { x: number; y: number }[] => {
+  const smoothPath = (points: { x: number; y: number }[], smoothing: number, isTouch: boolean = false): { x: number; y: number }[] => {
     // If no smoothing or too few points, return original
     if (points.length < 2 || smoothing === 0) return points
     
+    // For touch events, reduce effective smoothing since touch generates more points per distance
+    // Touch events typically generate 2-3x more points, so reduce smoothing by ~50%
+    const effectiveSmoothing = isTouch ? smoothing * 0.5 : smoothing
+    
     // Convert smoothing (0-100) to window size (1-10)
-    const windowSize = Math.max(1, Math.min(10, Math.floor(smoothing / 10)))
+    const windowSize = Math.max(1, Math.min(10, Math.floor(effectiveSmoothing / 10)))
     const smoothed: { x: number; y: number }[] = []
     
     for (let i = 0; i < points.length; i++) {
@@ -1478,6 +1483,15 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Check if we're about to save a drawing
     const isAboutToSaveDrawing = isDrawing && currentPath.length > 0 && currentTool === 'draw'
     
+    // Reset touch drawing flag after saving
+    if (isAboutToSaveDrawing) {
+      const wasTouchDrawing = isTouchDrawingRef.current
+      // Reset flag after a short delay to ensure it's used in smoothPath
+      setTimeout(() => {
+        isTouchDrawingRef.current = false
+      }, 0)
+    }
+    
     // Prevent duplicate saves when handleMouseUp is called multiple times (mouseUp, mouseLeave, touchEnd)
     if (isAboutToSaveDrawing && isSavingDrawingRef.current) {
       return
@@ -1492,7 +1506,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       const face = mode === 'front' ? 'front' : 'back'
       
       // Apply smoothing to path before saving
-      const smoothedPath = smoothPath(currentPath, drawSettings.smoothing || 0)
+      // Use reduced smoothing for touch events since they generate more points
+      const smoothedPath = smoothPath(currentPath, drawSettings.smoothing || 0, isTouchDrawingRef.current)
       
       // Use smoothed path if valid, otherwise fall back to original
       const pathToSave = smoothedPath.length >= 2 ? smoothedPath : currentPath
@@ -1598,6 +1613,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     // Disable interactions in read-only mode
     if (readOnly) return
     if (e.touches.length > 1) return // Ignore multi-touch
+    // Mark that we're drawing with touch
+    if (currentTool === 'draw') {
+      isTouchDrawingRef.current = true
+    }
     handleMouseDown(e as any)
   }
 
@@ -1669,6 +1688,11 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
 
     // Continue with normal touch end handling
     handleMouseUp()
+    
+    // Reset touch drawing flag after handling
+    setTimeout(() => {
+      isTouchDrawingRef.current = false
+    }, 0)
   }
 
   const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
