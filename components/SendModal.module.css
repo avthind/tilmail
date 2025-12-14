@@ -39,11 +39,13 @@
   }
 
   .modal {
-    max-width: calc(100% - 40px);
+    max-width: calc(100vw - 40px);
+    width: calc(100vw - 40px);
     max-height: 90vh;
     padding: 16px;
     border-radius: 0;
     margin: auto;
+    box-sizing: border-box;
   }
 
   .title {
@@ -65,9 +67,16 @@
     min-width: 36px;
   }
 
+  .shareIcons {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
   .shareIconButton {
     width: 36px;
     height: 36px;
+    flex-shrink: 0;
   }
 
   .shareIconButton svg {
@@ -78,17 +87,27 @@
 
 @media (max-width: 480px) {
   .modal {
+    max-width: calc(100vw - 40px);
+    width: calc(100vw - 40px);
     padding: 12px;
     max-height: 85vh;
+    box-sizing: border-box;
   }
 
   .title {
     font-size: 16px;
   }
 
+  .shareIcons {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
   .shareIconButton {
     width: 32px;
     height: 32px;
+    flex-shrink: 0;
   }
 
   .shareIconButton svg {
@@ -340,8 +359,9 @@
 .shareIcons {
   display: flex;
   gap: 6px;
-  flex-wrap: nowrap;
-  justify-content: flex-start;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
 }
 
 .shareIconButton {
