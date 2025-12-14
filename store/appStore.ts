@@ -266,21 +266,64 @@ export const useAppStore = create<AppState>((set, get) => ({
   undo: () => {
     const state = get()
     if (state.historyIndex > 0) {
-      // Find the previous state with real content (skip placeholder-only states)
+      // Get current state (after filtering placeholders) for comparison
+      const currentFilteredFront = state.decorations.front.filter(
+        d => !(d.type === 'text' && d.data.text === 'Your text…')
+      )
+      const currentFilteredBack = state.decorations.back.filter(
+        d => !(d.type === 'text' && d.data.text === 'Your text…')
+      )
+      const currentFilteredIds = new Set([
+        ...currentFilteredFront.map(d => d.id),
+        ...currentFilteredBack.map(d => d.id)
+      ])
+      
+      // Find the previous state with real content (skip ALL consecutive placeholder-only states)
       let newIndex = state.historyIndex - 1
       let previousState = state.history[newIndex]
       
-      // Skip states that only contain placeholder text (to avoid empty clicks)
+      // Skip ALL consecutive states that only contain placeholder text (to avoid empty clicks)
+      // Keep going until we find a state that's different from current after filtering
       while (newIndex > 0) {
-        const hasRealContent = 
-          previousState.decorations.front.some(d => !(d.type === 'text' && d.data.text === 'Your text…')) ||
-          previousState.decorations.back.some(d => !(d.type === 'text' && d.data.text === 'Your text…'))
+        const frontDecorations = previousState.decorations.front || []
+        const backDecorations = previousState.decorations.back || []
         
-        if (hasRealContent) {
+        // Filter out placeholder text to see what would remain
+        const filteredFront = frontDecorations.filter(
+          d => !(d.type === 'text' && d.data.text === 'Your text…')
+        )
+        const filteredBack = backDecorations.filter(
+          d => !(d.type === 'text' && d.data.text === 'Your text…')
+        )
+        
+        // Check if this state would be empty after filtering (all were placeholders)
+        const wouldBeEmpty = filteredFront.length === 0 && filteredBack.length === 0
+        
+        // Also check if state was originally empty (no decorations at all)
+        const originallyEmpty = frontDecorations.length === 0 && backDecorations.length === 0
+        
+        // Check if this state is different from current state (after filtering)
+        // Compare by ID set and counts for efficiency
+        const filteredIds = new Set([
+          ...filteredFront.map(d => d.id),
+          ...filteredBack.map(d => d.id)
+        ])
+        const isDifferent = 
+          filteredFront.length !== currentFilteredFront.length ||
+          filteredBack.length !== currentFilteredBack.length ||
+          filteredIds.size !== currentFilteredIds.size ||
+          [...filteredIds].some(id => !currentFilteredIds.has(id)) ||
+          [...currentFilteredIds].some(id => !filteredIds.has(id))
+        
+        // Use this state if:
+        // 1. It has real content (not placeholder-only), OR
+        // 2. It was originally empty (initial state), OR
+        // 3. It's different from current state (will produce visible change)
+        if ((!wouldBeEmpty || originallyEmpty) && isDifferent) {
           break
         }
         
-        // Skip to previous state
+        // Skip to previous state (this one would be empty or same as current)
         newIndex--
         if (newIndex >= 0) {
           previousState = state.history[newIndex]
@@ -309,21 +352,64 @@ export const useAppStore = create<AppState>((set, get) => ({
   redo: () => {
     const state = get()
     if (state.historyIndex < state.history.length - 1) {
-      // Find the next state with real content (skip placeholder-only states)
+      // Get current state (after filtering placeholders) for comparison
+      const currentFilteredFront = state.decorations.front.filter(
+        d => !(d.type === 'text' && d.data.text === 'Your text…')
+      )
+      const currentFilteredBack = state.decorations.back.filter(
+        d => !(d.type === 'text' && d.data.text === 'Your text…')
+      )
+      const currentFilteredIds = new Set([
+        ...currentFilteredFront.map(d => d.id),
+        ...currentFilteredBack.map(d => d.id)
+      ])
+      
+      // Find the next state with real content (skip ALL consecutive placeholder-only states)
       let newIndex = state.historyIndex + 1
       let nextState = state.history[newIndex]
       
-      // Skip states that only contain placeholder text (to avoid empty clicks)
+      // Skip ALL consecutive states that only contain placeholder text (to avoid empty clicks)
+      // Keep going until we find a state that's different from current after filtering
       while (newIndex < state.history.length - 1) {
-        const hasRealContent = 
-          nextState.decorations.front.some(d => !(d.type === 'text' && d.data.text === 'Your text…')) ||
-          nextState.decorations.back.some(d => !(d.type === 'text' && d.data.text === 'Your text…'))
+        const frontDecorations = nextState.decorations.front || []
+        const backDecorations = nextState.decorations.back || []
         
-        if (hasRealContent) {
+        // Filter out placeholder text to see what would remain
+        const filteredFront = frontDecorations.filter(
+          d => !(d.type === 'text' && d.data.text === 'Your text…')
+        )
+        const filteredBack = backDecorations.filter(
+          d => !(d.type === 'text' && d.data.text === 'Your text…')
+        )
+        
+        // Check if this state would be empty after filtering (all were placeholders)
+        const wouldBeEmpty = filteredFront.length === 0 && filteredBack.length === 0
+        
+        // Also check if state was originally empty (no decorations at all)
+        const originallyEmpty = frontDecorations.length === 0 && backDecorations.length === 0
+        
+        // Check if this state is different from current state (after filtering)
+        // Compare by ID set and counts for efficiency
+        const filteredIds = new Set([
+          ...filteredFront.map(d => d.id),
+          ...filteredBack.map(d => d.id)
+        ])
+        const isDifferent = 
+          filteredFront.length !== currentFilteredFront.length ||
+          filteredBack.length !== currentFilteredBack.length ||
+          filteredIds.size !== currentFilteredIds.size ||
+          [...filteredIds].some(id => !currentFilteredIds.has(id)) ||
+          [...currentFilteredIds].some(id => !filteredIds.has(id))
+        
+        // Use this state if:
+        // 1. It has real content (not placeholder-only), OR
+        // 2. It was originally empty (initial state), OR
+        // 3. It's different from current state (will produce visible change)
+        if ((!wouldBeEmpty || originallyEmpty) && isDifferent) {
           break
         }
         
-        // Skip to next state
+        // Skip to next state (this one would be empty or same as current)
         newIndex++
         if (newIndex < state.history.length) {
           nextState = state.history[newIndex]
