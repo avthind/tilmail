@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useEffect, useState, useCallback } from 'react'
-import { useAppStore } from '@/store/appStore'
+import { useAppStore, type FaceDecorations } from '@/store/appStore'
 import { getStickerData } from './StickerPicker'
 import styles from './CardCanvas.module.css'
 
