@@ -997,13 +997,19 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
 
     if ('touches' in e) {
       if (e.touches.length > 1) return null // Two fingers = ignore
-      clientX = e.touches[0].clientX
-      clientY = e.touches[0].clientY
+      // For touch events, use the first touch point
+      // Prefer touches[0] if available (during touchstart/touchmove), otherwise use changedTouches[0] (during touchend)
+      const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : null)
+      if (!touch) return null
+      clientX = touch.clientX
+      clientY = touch.clientY
     } else {
       clientX = e.clientX
       clientY = e.clientY
     }
 
+    // Calculate coordinates relative to canvas
+    // getBoundingClientRect() accounts for CSS transforms, so this should work correctly
     const x = ((clientX - rect.left) / rect.width) * CARD_WIDTH
     const y = ((clientY - rect.top) / rect.height) * CARD_HEIGHT
 
@@ -1919,9 +1925,33 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             }}
             className={styles.textInput}
             style={{
-              left: `${(selectedTextDecoration.x + CARD_WIDTH / 2)}px`,
-              top: `${(selectedTextDecoration.y + CARD_HEIGHT / 2)}px`,
-              fontSize: `${selectedTextDecoration.data.fontSize || 24}px`,
+              ...(() => {
+                // Calculate scale factor based on canvas display size vs actual card size
+                // This ensures textarea font size matches the scaled canvas rendering
+                const canvas = canvasRef.current
+                if (!canvas) {
+                  return {
+                    left: `${(selectedTextDecoration.x + CARD_WIDTH / 2)}px`,
+                    top: `${(selectedTextDecoration.y + CARD_HEIGHT / 2)}px`,
+                    fontSize: `${selectedTextDecoration.data.fontSize || 24}px`,
+                    maxWidth: `${CARD_WIDTH - 40}px`,
+                  }
+                }
+                
+                const container = canvas.parentElement
+                const containerRect = container?.getBoundingClientRect()
+                const displayWidth = containerRect?.width || CARD_WIDTH
+                const displayHeight = containerRect?.height || CARD_HEIGHT
+                const scaleFactor = displayWidth / CARD_WIDTH
+                const baseFontSize = selectedTextDecoration.data.fontSize || 24
+                
+                return {
+                  left: `${(selectedTextDecoration.x + CARD_WIDTH / 2) * scaleFactor}px`,
+                  top: `${(selectedTextDecoration.y + CARD_HEIGHT / 2) * scaleFactor}px`,
+                  fontSize: `${baseFontSize * scaleFactor}px`,
+                  maxWidth: `${(CARD_WIDTH - 40) * scaleFactor}px`,
+                }
+              })(),
               fontFamily: selectedTextDecoration.data.fontFamily || 'Arial, sans-serif',
               color: selectedTextDecoration.data.color || '#000000',
               fontWeight: selectedTextDecoration.data.fontWeight || 'normal',
@@ -1934,7 +1964,6 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               resize: 'none',
               overflow: 'hidden',
               width: 'auto',
-              maxWidth: `${CARD_WIDTH - 40}px`,
               padding: '2px 4px',
               textAlign: 'center',
               lineHeight: '1.2',
