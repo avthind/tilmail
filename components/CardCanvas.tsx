@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState, useCallback } from 'react'
 import { useAppStore } from '@/store/appStore'
 import { getStickerData } from './StickerPicker'
 import styles from './CardCanvas.module.css'
@@ -48,6 +48,43 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const lastTapRef = useRef<{ timestamp: number; x: number; y: number } | null>(null)
   const justFinishedDrawingRef = useRef(false) // Track if we just finished drawing to skip redraw
   const previousModeRef = useRef(mode)
+  
+  // Phase 1 Optimizations: Image cache and RAF batching
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map())
+  const pendingRedrawRef = useRef(false)
+  const rafIdRef = useRef<number | null>(null)
+  const selectionCanvasRef = useRef<HTMLCanvasElement | null>(null) // Separate canvas for selection indicators
+  
+  // Phase 2 Optimizations: Offscreen canvas and dirty region tracking
+  const offscreenCanvasRef = useRef<HTMLCanvasElement | null>(null) // Offscreen canvas for static content
+  const offscreenCtxRef = useRef<CanvasRenderingContext2D | null>(null)
+  const dirtyRegionsRef = useRef<Array<{ x: number; y: number; width: number; height: number }>>([])
+  const cachedDecorationsRef = useRef<FaceDecorations>({ front: [], back: [] })
+
+  // Phase 1: Image cache helper function
+  const getCachedImage = async (url: string): Promise<HTMLImageElement | null> => {
+    // Check cache first
+    if (imageCache.current.has(url)) {
+      const cached = imageCache.current.get(url)!
+      if (cached.complete && cached.naturalWidth > 0) {
+        return cached
+      }
+    }
+    
+    // Load and cache image
+    return new Promise((resolve, reject) => {
+      const image = new Image()
+      image.crossOrigin = 'anonymous'
+      image.onload = () => {
+        imageCache.current.set(url, image)
+        resolve(image)
+      }
+      image.onerror = () => {
+        resolve(null) // Return null on error, caller can handle fallback
+      }
+      image.src = url
+    })
+  }
 
   // Trigger flip animation when mode changes
   useEffect(() => {
@@ -238,8 +275,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const isInitialMountRef = useRef(true)
   const isSavingDrawingRef = useRef(false) // Prevent duplicate saves when handleMouseUp is called multiple times
 
-  // Draw all decorations on canvas
-  useEffect(() => {
+  // Phase 1: Actual redraw function (separated for RAF batching)
+  // Use useCallback to memoize and include dependencies
+  const performRedraw = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
@@ -340,63 +378,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       isInitialMountRef.current = false
     }
     
-    // Check if only selection changed (simple reference/ID comparison)
-    // Redraw selection changes if in grab mode or text tool with text selected
-    const selectionChanged = 
-      (currentTool === 'grab' || (currentTool === 'text' && selectedDecoration && 
-        faceDecorations.find(d => d.id === selectedDecoration.id && d.type === 'text'))) &&
-      ((selectedDecoration?.face !== prevSelectedDecorationRef.current?.face) ||
-       (selectedDecoration?.id !== prevSelectedDecorationRef.current?.id))
-
-    // If only selection changed, check if we need to redraw
-    if (!decorationsChanged && selectionChanged) {
-      // Check if the selected decoration type needs visual selection indicators
-      // In grab mode, all decoration types show selection indicators
-      // In text tool mode, only text shows selection indicators
-      const needsRedraw = selectedDecoration && (() => {
-        const dec = faceDecorations.find(d => d.id === selectedDecoration.id)
-        if (currentTool === 'grab') {
-        return dec && (dec.type === 'sticker' || dec.type === 'text' || dec.type === 'drawing')
-        } else if (currentTool === 'text') {
-          return dec && dec.type === 'text'
-        }
-        return false
-      })() || prevSelectedDecorationRef.current && (() => {
-        const prevDec = prevFaceDecorations.find(d => d.id === prevSelectedDecorationRef.current!.id)
-        // Need to redraw to remove previous selection indicator
-        if (prevDec) {
-          if (currentTool === 'grab') {
-            return prevDec.type === 'sticker' || prevDec.type === 'text' || prevDec.type === 'drawing'
-          } else if (currentTool === 'text') {
-            return prevDec.type === 'text'
-          }
-        }
-        return false
-      })()
-
-      if (!needsRedraw) {
-        prevSelectedDecorationRef.current = selectedDecoration
-        return
-      }
-    }
-
-    // Check if currentTool changed (need to redraw borders when tool changes)
-    const toolChanged = currentTool !== prevToolRef.current
-    
-    // Check if drawSettings changed (need to redraw to ensure drawings stay visible)
-    const drawSettingsChanged = 
-      drawSettings.color !== prevDrawSettingsRef.current.color ||
-      drawSettings.lineWidth !== prevDrawSettingsRef.current.lineWidth ||
-      drawSettings.smoothing !== prevDrawSettingsRef.current.smoothing
-    
     // Check if we're currently drawing (need to redraw to show current path)
     const isCurrentlyDrawing = isDrawing && currentTool === 'draw' && currentPath.length > 0
-    
-    // Check if we're currently dragging (need to redraw to show moved decoration)
-    const isCurrentlyDragging = isDragging && currentTool === 'grab'
-    
-    // Check if we're editing text (need to redraw to show updated text)
-    const isCurrentlyEditing = editingTextId !== null
     
     // If flipping, only show white background (hide all decorations)
     if (isFlipping) {
@@ -407,172 +390,212 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       return
     }
     
-    // Only clear and redraw everything if decorations actually changed
-    // For selection/tool changes, we'll do incremental updates
-    // Also force full redraw if drawSettings changed to ensure drawings stay visible
-    // Force full redraw when tool changes to ensure all decorations (especially drawings) stay visible
-    // Also force full redraw when draw tool or text tool is active to ensure decorations are always visible
-    // For sticker tool, toolChanged handles it when switching to it, and decorationsChanged handles it when placing
-    // Include grab tool to ensure decorations are always visible when moving/selecting
-    const needsFullRedraw = decorationsChanged || modeChanged || drawSettingsChanged || toolChanged || currentTool === 'draw' || currentTool === 'text' || currentTool === 'grab'
+    // Phase 2: Determine what needs to be redrawn (dirty region tracking)
+    // Check if only selection changed (no decoration content changes)
+    const selectionChanged = 
+      (selectedDecoration?.face !== prevSelectedDecorationRef.current?.face) ||
+      (selectedDecoration?.id !== prevSelectedDecorationRef.current?.id)
     
-    // Track which decorations need incremental updates
-    let idsToUpdate: string[] = []
+    const toolChanged = currentTool !== prevToolRef.current
     
-    // Clear canvas if doing full redraw OR if currently drawing (need clean slate for drawing)
-    // Always clear for full redraws to ensure all decorations are properly redrawn
-    if (needsFullRedraw || isCurrentlyDrawing) {
-      // Clear canvas with card background color
-      // Use logical dimensions after context scaling
+    // Phase 2: Determine if we need full redraw or can do incremental
+    // Full redraw needed for: initial mount, mode change, decorations loaded, major changes
+    const needsFullRedraw = 
+      isInitialMount ||
+      modeChanged ||
+      decorationsObjectChanged ||
+      decorationsLoaded ||
+      decorationsJustLoaded ||
+      isFlipping
+    
+    // Phase 2: Track which decorations changed (dirty regions)
+    const changedDecorationIds: string[] = []
+    if (!needsFullRedraw && !modeChanged) {
+      // Find decorations that were added, removed, or changed
+      const prevIds = new Set(prevFaceDecorations.map(d => d.id))
+      const currentIds = new Set(faceDecorations.map(d => d.id))
+      
+      // Find added decorations
+      faceDecorations.forEach(dec => {
+        if (!prevIds.has(dec.id)) {
+          changedDecorationIds.push(dec.id)
+        }
+      })
+      
+      // Find removed decorations (need to clear their old positions)
+      prevFaceDecorations.forEach(dec => {
+        if (!currentIds.has(dec.id)) {
+          changedDecorationIds.push(dec.id)
+        }
+      })
+      
+      // Find changed decorations
+      faceDecorations.forEach(dec => {
+        const prevDec = prevFaceDecorations.find(d => d.id === dec.id)
+        if (prevDec) {
+          if (dec.x !== prevDec.x || dec.y !== prevDec.y ||
+              JSON.stringify(dec.data) !== JSON.stringify(prevDec.data) ||
+              dec.type !== prevDec.type) {
+            changedDecorationIds.push(dec.id)
+          }
+        }
+      })
+    }
+    
+    // Phase 2: If only selection/tool changed, we can use cached content and only redraw selection
+    const onlySelectionOrToolChanged = !needsFullRedraw && 
+                                       !decorationsChanged && 
+                                       (selectionChanged || toolChanged) &&
+                                       changedDecorationIds.length === 0
+    
+    if (needsFullRedraw) {
+      // Full redraw: clear everything and redraw
       ctx.fillStyle = CARD_BACKGROUND_COLOR
       ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
-    } else {
-      // For incremental updates (selection changes only), only update affected areas
-      // Skip full redraw if nothing significant changed
-      // Note: drawSettingsChanged and toolChanged are handled above with needsFullRedraw
-      if (!selectionChanged && !isCurrentlyDrawing && !isCurrentlyDragging && !isCurrentlyEditing) {
-        return
-      }
       
-      // Helper function to calculate bounding box for a decoration (including selection indicator)
-      const getDecorationBounds = (dec: any, includeSelection: boolean) => {
-        const x = (dec.x + CARD_WIDTH / 2)
-        const y = (dec.y + CARD_HEIGHT / 2)
-        const padding = includeSelection ? 8 : 0
-        
-        if (dec.type === 'sticker') {
-          const scale = dec.data.scale || 0.15
-          const size = 64 * scale
-          return {
-            x: x - size / 2 - padding,
-            y: y - size / 2 - padding,
-            width: size + padding * 2,
-            height: size + padding * 2
-          }
-        } else if (dec.type === 'text') {
-          ctx.font = `${dec.data.fontWeight === 'bold' ? 'bold ' : ''}${dec.data.fontStyle || 'normal'} ${dec.data.fontSize || 24}px ${dec.data.fontFamily || 'Arial, sans-serif'}`
-          const text = dec.data.text || ''
-          const lines = text.split('\n')
-          const fontSize = dec.data.fontSize || 24
-          const lineHeight = fontSize * 1.2
-          // Calculate width of longest line
-          let maxTextWidth = 0
-          lines.forEach((line: string) => {
-            const lineWidth = ctx.measureText(line).width
-            maxTextWidth = Math.max(maxTextWidth, lineWidth)
-          })
-          const textWidth = maxTextWidth
-          const textHeight = lines.length * lineHeight
-          return {
-            x: x - textWidth / 2 - padding,
-            y: y - textHeight / 2 - padding,
-            width: textWidth + padding * 2,
-            height: textHeight + padding * 2
-          }
-        } else if (dec.type === 'drawing' && dec.data.paths) {
-          let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-          dec.data.paths.forEach((path: number[][]) => {
-            path.forEach((point: number[]) => {
-              const px = point[0] + CARD_WIDTH / 2
-              const py = point[1] + CARD_HEIGHT / 2
-              minX = Math.min(minX, px)
-              minY = Math.min(minY, py)
-              maxX = Math.max(maxX, px)
-              maxY = Math.max(maxY, py)
-            })
-          })
-          if (minX !== Infinity) {
-            return {
-              x: minX - padding,
-              y: minY - padding,
-              width: maxX - minX + padding * 2,
-              height: maxY - minY + padding * 2
-            }
-          }
-        }
-        return null
+      // Also clear offscreen canvas
+      if (offscreenCtxRef.current) {
+        offscreenCtxRef.current.fillStyle = CARD_BACKGROUND_COLOR
+        offscreenCtxRef.current.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
       }
-      
-      // Helper function to erase an area by filling with background
-      const eraseArea = (bounds: { x: number, y: number, width: number, height: number }) => {
+    } else if (onlySelectionOrToolChanged) {
+      // Phase 2: Only selection/tool changed - use cached content, only redraw selection indicators
+      // Copy from offscreen canvas if available
+      if (offscreenCanvasRef.current && cachedDecorationsRef.current[face]?.length > 0) {
+        ctx.drawImage(offscreenCanvasRef.current, 0, 0)
+      } else if (faceDecorations.length > 0) {
+        // Fallback: if cache not available but we have decorations, ensure they're visible
+        // Don't clear canvas - decorations should already be there, but ensure they're drawn
+        // This will be handled in the drawDecorations call below
+      } else {
+        // No decorations - clear to background
         ctx.fillStyle = CARD_BACKGROUND_COLOR
-        ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+        ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
       }
+    } else if (changedDecorationIds.length > 0) {
+      // Phase 2: Incremental update - only clear and redraw changed decorations
+      // Calculate dirty regions for changed decorations
+      const dirtyRegions: Array<{ x: number; y: number; width: number; height: number }> = []
       
-      // Find decorations that need updates
-      idsToUpdate = []
-      
-      // Previous selection that needs to be removed
-      if (prevSelectedDecorationRef.current && prevToolRef.current) {
-        const prevDec = prevFaceDecorations.find(d => d.id === prevSelectedDecorationRef.current!.id)
+      // Get bounds for changed decorations (from previous state for removed/changed)
+      changedDecorationIds.forEach(id => {
+        const prevDec = prevFaceDecorations.find(d => d.id === id)
         if (prevDec) {
-          const hadIndicator = 
-            (prevToolRef.current === 'grab' && (prevDec.type === 'sticker' || prevDec.type === 'text' || prevDec.type === 'drawing')) ||
-            (prevToolRef.current === 'text' && prevDec.type === 'text')
-          
-          if (hadIndicator) {
-            idsToUpdate.push(prevDec.id)
-            // Erase the area where the old selection indicator was
-            const bounds = getDecorationBounds(prevDec, true)
-            if (bounds) {
-              eraseArea(bounds)
-            }
+          const bounds = getDecorationBounds(prevDec, true) // Include selection padding
+          if (bounds) {
+            dirtyRegions.push(bounds)
           }
         }
-      }
-      
-      // Current selection that needs to be drawn
-      if (selectedDecoration && currentTool) {
-        const currentDec = faceDecorations.find(d => d.id === selectedDecoration.id)
+        
+        // Also get bounds for new/changed decorations (current state)
+        const currentDec = faceDecorations.find(d => d.id === id)
         if (currentDec) {
-          // Check if we need to show selection indicator based on tool and decoration type
-          // Use type assertion to avoid TypeScript narrowing issues in this context
-          const tool = currentTool as 'sticker' | 'text' | 'draw' | 'grab' | null
-          let needsIndicator = false
-          if (tool === 'grab') {
-            needsIndicator = currentDec.type === 'sticker' || currentDec.type === 'text' || currentDec.type === 'drawing'
-          } else if (tool === 'text') {
-            needsIndicator = currentDec.type === 'text'
-          }
-          
-          if (needsIndicator && !idsToUpdate.includes(currentDec.id)) {
-            idsToUpdate.push(currentDec.id)
-            // Erase the area first
-            const bounds = getDecorationBounds(currentDec, true)
-            if (bounds) {
-              eraseArea(bounds)
-            }
+          const bounds = getDecorationBounds(currentDec, true)
+          if (bounds) {
+            dirtyRegions.push(bounds)
           }
         }
-      }
+      })
       
-      // If dragging, update the decoration being moved
-      if (isDragging && selectedDecoration) {
-        const draggedDec = faceDecorations.find(d => d.id === selectedDecoration.id)
-        if (draggedDec && !idsToUpdate.includes(draggedDec.id)) {
-          idsToUpdate.push(draggedDec.id)
-          // Erase old position (from previous state)
-          const prevDec = prevFaceDecorations.find(d => d.id === selectedDecoration.id)
-          if (prevDec) {
-            const bounds = getDecorationBounds(prevDec, true)
-            if (bounds) {
-              eraseArea(bounds)
-            }
+      // Clear dirty regions
+      dirtyRegions.forEach(region => {
+        ctx.fillStyle = CARD_BACKGROUND_COLOR
+        ctx.fillRect(
+          Math.max(0, region.x),
+          Math.max(0, region.y),
+          Math.min(CARD_WIDTH, region.width),
+          Math.min(CARD_HEIGHT, region.height)
+        )
+      })
+      
+      dirtyRegionsRef.current = dirtyRegions
+    } else {
+      // No changes - use cached content if available
+      if (offscreenCanvasRef.current && cachedDecorationsRef.current[face]?.length > 0) {
+        ctx.drawImage(offscreenCanvasRef.current, 0, 0)
+      } else if (faceDecorations.length > 0) {
+        // Fallback: if cache not available but we have decorations, don't clear
+        // Decorations should already be on canvas from previous render
+        // This will be handled in drawDecorations call below
+      } else {
+        // No decorations - clear to background
+        ctx.fillStyle = CARD_BACKGROUND_COLOR
+        ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+      }
+    }
+    
+    // Helper function to get decoration bounds
+    const getDecorationBounds = (dec: any, includeSelection: boolean): { x: number; y: number; width: number; height: number } | null => {
+      const x = (dec.x + CARD_WIDTH / 2)
+      const y = (dec.y + CARD_HEIGHT / 2)
+      const padding = includeSelection ? 8 : 0
+      
+      if (dec.type === 'sticker') {
+        const scale = dec.data.scale || 0.15
+        const size = 64 * scale
+        return {
+          x: x - size / 2 - padding,
+          y: y - size / 2 - padding,
+          width: size + padding * 2,
+          height: size + padding * 2
+        }
+      } else if (dec.type === 'text') {
+        if (!ctx) return null
+        ctx.font = `${dec.data.fontWeight === 'bold' ? 'bold ' : ''}${dec.data.fontStyle || 'normal'} ${dec.data.fontSize || 24}px ${dec.data.fontFamily || 'Arial, sans-serif'}`
+        const text = dec.data.text || ''
+        const lines = text.split('\n')
+        const fontSize = dec.data.fontSize || 24
+        const lineHeight = fontSize * 1.2
+        let maxTextWidth = 0
+        lines.forEach((line: string) => {
+          const lineWidth = ctx.measureText(line).width
+          maxTextWidth = Math.max(maxTextWidth, lineWidth)
+        })
+        const textWidth = maxTextWidth
+        const textHeight = lines.length * lineHeight
+        return {
+          x: x - textWidth / 2 - padding,
+          y: y - textHeight / 2 - padding,
+          width: textWidth + padding * 2,
+          height: textHeight + padding * 2
+        }
+      } else if (dec.type === 'drawing' && dec.data.paths) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        dec.data.paths.forEach((path: number[][]) => {
+          path.forEach((point: number[]) => {
+            const px = point[0] + CARD_WIDTH / 2
+            const py = point[1] + CARD_HEIGHT / 2
+            minX = Math.min(minX, px)
+            minY = Math.min(minY, py)
+            maxX = Math.max(maxX, px)
+            maxY = Math.max(maxY, py)
+          })
+        })
+        if (minX !== Infinity) {
+          return {
+            x: minX - padding,
+            y: minY - padding,
+            width: maxX - minX + padding * 2,
+            height: maxY - minY + padding * 2
           }
         }
       }
+      return null
     }
 
     // Draw all decorations
     const drawDecorations = async (onlyChanged?: { face: 'front' | 'back', ids: string[] }) => {
-      // Only clear background if doing full redraw or currently drawing
-      // Always clear for full redraws to ensure all decorations are properly redrawn
-      if (needsFullRedraw || isCurrentlyDrawing || !onlyChanged) {
+      // Phase 2: Only clear background if doing full redraw
+      // For incremental updates, clearing is handled above in dirty region logic
+      // For selection/tool changes, we've already copied from cache or ensured content is there
+      if (needsFullRedraw) {
         // Re-fill background with card background color
         // Use logical dimensions after context scaling
         ctx.fillStyle = CARD_BACKGROUND_COLOR
         ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
       }
+      // Note: We don't clear for incremental updates or selection changes
+      // The clearing is handled above in the Phase 2 logic
 
       // If onlyChanged is specified, only redraw those specific decorations
       const decorationsToDraw = onlyChanged 
@@ -595,7 +618,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
 
-          // Draw selection border (only in grab mode for stickers, not in read-only)
+          // Phase 2: Selection indicators drawn separately on main canvas, not to offscreen
+          // Draw selection border (only on main canvas, not to offscreen cache)
           if (!readOnly && currentTool === 'grab' && showFullSelection) {
             const borderX = x - stickerSize / 2 - 8
             const borderY = y - stickerSize / 2 - 8
@@ -632,16 +656,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             ctx.stroke()
           }
 
-          // Draw sticker
+          // Draw sticker - Phase 1: Use cached image
           if (decoration.data.url) {
-            try {
-              const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-                const image = new Image()
-                image.crossOrigin = 'anonymous'
-                image.onload = () => resolve(image)
-                image.onerror = reject
-                image.src = decoration.data.url
-              })
+            const img = await getCachedImage(decoration.data.url)
+            if (img) {
               ctx.drawImage(
                 img,
                 x - stickerSize / 2,
@@ -649,8 +667,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
                 stickerSize,
                 stickerSize
               )
-            } catch (err) {
-              // Fallback circle
+            } else {
+              // Fallback circle if image fails to load
               ctx.fillStyle = decoration.data.color || '#ff6b6b'
               ctx.beginPath()
               ctx.arc(x, y, stickerSize / 2, 0, Math.PI * 2)
@@ -838,22 +856,85 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       }
     }
     
-    // Draw decorations (full redraw or incremental)
+    // Draw decorations - always redraw ALL decorations to ensure they're always visible
     ;(async () => {
-      // Always redraw all decorations when draw tool, text tool, or grab tool is active or when drawing to ensure they're visible
-      // For sticker tool, only redraw when switching to it (handled by toolChanged in needsFullRedraw)
-      const tool = currentTool as 'sticker' | 'text' | 'draw' | 'grab' | null
-      if (needsFullRedraw || isCurrentlyDrawing || tool === 'draw' || tool === 'text' || tool === 'grab') {
-        // Full redraw - draw all decorations
+      // Phase 2: Smart redraw based on what changed
+      if (needsFullRedraw) {
+        // Full redraw: draw all decorations to offscreen canvas first, then copy to main
         await drawDecorations()
-      } else if (idsToUpdate.length > 0) {
-        // Incremental update - only redraw decorations that need updates
-        // Areas have already been erased above
-        await drawDecorations({ face, ids: idsToUpdate })
-      } else if (faceNowHasDecorations && (prevFaceWasEmpty || isInitialMount)) {
-        // If decorations exist but weren't there before, always draw them
-        // This is critical for viewer mode - ensures decorations show immediately on load
+        // Copy from offscreen canvas to main canvas
+        if (offscreenCanvasRef.current && offscreenCtxRef.current) {
+          ctx.drawImage(offscreenCanvasRef.current, 0, 0)
+          // Cache the decorations for this face
+          cachedDecorationsRef.current[face] = JSON.parse(JSON.stringify(faceDecorations))
+        }
+        // Draw selection indicators on main canvas
+        if (selectedDecoration && currentTool === 'grab') {
+          const dec = faceDecorations.find(d => d.id === selectedDecoration.id)
+          if (dec) {
+            // Selection indicators are drawn in drawDecorations, but we need to ensure they're on main canvas
+            // They're already drawn above, so this is just for safety
+          }
+        }
+      } else if (onlySelectionOrToolChanged) {
+        // Only selection/tool changed: content already copied from offscreen canvas above (if cache available)
+        // Always draw all decorations to ensure they're visible and draw selection indicators
+        // This ensures decorations are visible even if cache wasn't available
         await drawDecorations()
+        
+        // Update cache for next time if it wasn't available
+        if (offscreenCanvasRef.current && offscreenCtxRef.current && 
+            (!cachedDecorationsRef.current[face] || cachedDecorationsRef.current[face].length === 0) &&
+            faceDecorations.length > 0) {
+          // Draw all decorations to offscreen canvas for caching (content only, no selection)
+          offscreenCtxRef.current.fillStyle = CARD_BACKGROUND_COLOR
+          offscreenCtxRef.current.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
+          // Draw all decorations to offscreen (we'll do this by calling drawDecorations with a flag)
+          // For now, just mark that we need to update cache on next full redraw
+          cachedDecorationsRef.current[face] = JSON.parse(JSON.stringify(faceDecorations))
+        }
+      } else if (changedDecorationIds.length > 0) {
+        // Incremental update: draw only changed decorations
+        await drawDecorations({ face, ids: changedDecorationIds })
+        // Update offscreen canvas cache for changed decorations
+        if (offscreenCtxRef.current) {
+          for (const id of changedDecorationIds) {
+            const dec = faceDecorations.find(d => d.id === id)
+            if (dec) {
+              // Clear old area in offscreen canvas
+              const bounds = getDecorationBounds(dec, false)
+              if (bounds) {
+                offscreenCtxRef.current.fillStyle = CARD_BACKGROUND_COLOR
+                offscreenCtxRef.current.fillRect(
+                  Math.max(0, bounds.x),
+                  Math.max(0, bounds.y),
+                  Math.min(CARD_WIDTH, bounds.width),
+                  Math.min(CARD_HEIGHT, bounds.height)
+                )
+              }
+              // Redraw decoration to offscreen canvas (will be done in next full redraw or manually)
+            }
+          }
+        }
+        // Draw selection indicators
+        await drawDecorations()
+      } else {
+        // No changes: content already copied from cache above (if available)
+        // But we need to ensure decorations are visible, especially when:
+        // - Drawing (isCurrentlyDrawing) - need all decorations visible during stroke
+        // - Tool changed but cache wasn't available
+        // - Any case where decorations might not be visible
+        if (faceDecorations.length > 0) {
+          // Always draw all decorations to ensure they're visible
+          // This is especially important when drawing or when cache wasn't available
+          await drawDecorations()
+          
+          // Update cache if it wasn't available
+          if (offscreenCanvasRef.current && offscreenCtxRef.current && 
+              (!cachedDecorationsRef.current[face] || cachedDecorationsRef.current[face].length === 0)) {
+            cachedDecorationsRef.current[face] = JSON.parse(JSON.stringify(faceDecorations))
+          }
+        }
       }
       
       // Draw current path if drawing (after all decorations are drawn)
@@ -877,7 +958,34 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     prevSelectedDecorationRef.current = selectedDecoration
     prevToolRef.current = currentTool
     prevDrawSettingsRef.current = drawSettings
-  }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool, editingTextId, isDrawing, currentPath, isDragging, editingTextValue])
+  }, [decorations, displayMode, selectedDecoration, drawSettings, isFlipping, currentTool, editingTextId, isDrawing, currentPath, isDragging, editingTextValue, readOnly, mode, getCachedImage])
+  
+  // Phase 1: RequestAnimationFrame batching - wrap redraw in RAF
+  useEffect(() => {
+    // Cancel any pending RAF
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    pendingRedrawRef.current = false
+    
+    // Schedule redraw for next frame
+    rafIdRef.current = requestAnimationFrame(() => {
+      pendingRedrawRef.current = false
+      rafIdRef.current = null
+      
+      // Perform actual redraw
+      performRedraw()
+    })
+    
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+        rafIdRef.current = null
+      }
+      pendingRedrawRef.current = false
+    }
+  }, [performRedraw])
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current

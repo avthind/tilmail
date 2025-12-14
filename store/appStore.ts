@@ -266,22 +266,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   undo: () => {
     const state = get()
     if (state.historyIndex > 0) {
-      // Find the previous state that has non-placeholder content
+      // Find the previous state with real content (skip placeholder-only states)
       let newIndex = state.historyIndex - 1
       let previousState = state.history[newIndex]
       
-      // Skip states that only contain placeholder text
+      // Skip states that only contain placeholder text (to avoid empty clicks)
       while (newIndex > 0) {
-        const filteredCount = 
-          previousState.decorations.front.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length +
-          previousState.decorations.back.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length
+        const hasRealContent = 
+          previousState.decorations.front.some(d => !(d.type === 'text' && d.data.text === 'Your text…')) ||
+          previousState.decorations.back.some(d => !(d.type === 'text' && d.data.text === 'Your text…'))
         
-        // If this state has non-placeholder content, use it
-        if (filteredCount > 0) {
+        if (hasRealContent) {
           break
         }
         
-        // Otherwise, skip to the previous state
+        // Skip to previous state
         newIndex--
         if (newIndex >= 0) {
           previousState = state.history[newIndex]
@@ -310,22 +309,21 @@ export const useAppStore = create<AppState>((set, get) => ({
   redo: () => {
     const state = get()
     if (state.historyIndex < state.history.length - 1) {
-      // Find the next state that has non-placeholder content
+      // Find the next state with real content (skip placeholder-only states)
       let newIndex = state.historyIndex + 1
       let nextState = state.history[newIndex]
       
-      // Skip states that only contain placeholder text
+      // Skip states that only contain placeholder text (to avoid empty clicks)
       while (newIndex < state.history.length - 1) {
-        const filteredCount = 
-          nextState.decorations.front.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length +
-          nextState.decorations.back.filter(d => !(d.type === 'text' && d.data.text === 'Your text…')).length
+        const hasRealContent = 
+          nextState.decorations.front.some(d => !(d.type === 'text' && d.data.text === 'Your text…')) ||
+          nextState.decorations.back.some(d => !(d.type === 'text' && d.data.text === 'Your text…'))
         
-        // If this state has non-placeholder content, use it
-        if (filteredCount > 0) {
+        if (hasRealContent) {
           break
         }
         
-        // Otherwise, skip to the next state
+        // Skip to next state
         newIndex++
         if (newIndex < state.history.length) {
           nextState = state.history[newIndex]

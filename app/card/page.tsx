@@ -161,7 +161,7 @@ function CardViewerContent() {
 export default function CardViewerPage() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={
+    <Suspense fallback={
         <div className={styles.container} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pale-mint)' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ 
@@ -183,10 +183,10 @@ export default function CardViewerPage() {
               }
             `}</style>
           </div>
-        </div>
-      }>
-        <CardViewerContent />
-      </Suspense>
+      </div>
+    }>
+      <CardViewerContent />
+    </Suspense>
     </ErrorBoundary>
   )
 }
