@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import CardCanvas from '@/components/CardCanvas'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { loadCard } from '@/lib/firebase'
@@ -101,10 +102,8 @@ function CardViewerContent() {
           <span>Flip Card</span>
         </button>
         
-        <a 
+        <Link 
           href="/" 
-          target="_blank" 
-          rel="noopener noreferrer"
           className={styles.sendButton}
           aria-label="Create and send your own card"
         >
@@ -112,8 +111,8 @@ function CardViewerContent() {
             <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
             <polyline points="22,6 12,13 2,6"></polyline>
           </svg>
-          <span>Send Yours</span>
-        </a>
+            <span>Send Yours</span>
+          </Link>
       </div>
 
       {/* Left Corner Branding */}

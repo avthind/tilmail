@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 import CardCanvas from '@/components/CardCanvas'
 import Toolbar from '@/components/Toolbar'
 import SendModal from '@/components/SendModal'
@@ -161,7 +162,7 @@ export default function Home() {
             <p style={{ fontSize: '16px', color: 'var(--grey-600)', marginBottom: '24px' }}>
               {cardError}
             </p>
-            <a 
+            <Link 
               href="/" 
               style={{ 
                 display: 'inline-block',
@@ -182,7 +183,7 @@ export default function Home() {
               }}
             >
               Create Your Own Card
-            </a>
+            </Link>
           </div>
         </div>
       )
@@ -226,10 +227,8 @@ export default function Home() {
             <span>Flip Card</span>
           </button>
           
-          <a 
+          <Link 
             href="/" 
-            target="_blank" 
-            rel="noopener noreferrer"
             className={cardStyles.sendButton}
             aria-label="Create and send your own card"
           >
@@ -238,7 +237,7 @@ export default function Home() {
               <polyline points="22,6 12,13 2,6"></polyline>
             </svg>
             <span>Send Yours</span>
-          </a>
+          </Link>
         </div>
 
         {/* Left Corner Branding */}

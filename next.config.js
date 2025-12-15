@@ -6,6 +6,8 @@ const nextConfig = {
   reactStrictMode: true,
   // For static export (Firebase Hosting)
   output: 'export',
+  // Base path for subpath deployment
+  basePath: '/tilmail',
   images: {
     unoptimized: true,
   },

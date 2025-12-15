@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev -p 8005",
     "build": "next build",
+    "postbuild": "node scripts/move-to-tilmail.js",
     "start": "next start -p 8005",
     "lint": "next lint"
   },

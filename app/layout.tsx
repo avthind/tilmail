@@ -4,8 +4,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import ClientInit from '@/components/ClientInit'
 
 export const metadata: Metadata = {
-  title: 'TILmail',
-  description: 'Create and share personalized 3D digital postcards',
+  title: 'TILmail - Create & Share Digital Postcards',
+  description: 'Create and share personalized digital postcards',
 }
 
 export const viewport: Viewport = {
