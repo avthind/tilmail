@@ -1165,6 +1165,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   }
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Disable interactions in read-only mode
+    if (readOnly) return
+    
     // Stop event propagation to prevent click-outside handlers from closing the tool
     e.stopPropagation()
     
@@ -1702,6 +1705,9 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   }
 
   const handleDoubleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Disable interactions in read-only mode
+    if (readOnly) return
+    
     // Only allow double-click to edit when text tool is selected
     if (currentTool !== 'text') return
     
@@ -1899,7 +1905,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           onTouchEnd={handleTouchEnd}
           onDoubleClick={handleDoubleClick}
           style={{
-            cursor: isDragging ? 'grabbing' :
+            cursor: readOnly ? 'default' :
+                    isDragging ? 'grabbing' :
                     (currentTool === 'grab' && hoveredDecoration) ? 'grab' :
                     currentTool === 'grab' ? 'default' :
                     currentTool === 'sticker' && selectedSticker ? 'crosshair' :
@@ -1907,7 +1914,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
                     currentTool === 'draw' ? 'crosshair' : 'default'
           }}
         />
-        {selectedTextDecoration && editingTextId && (
+        {selectedTextDecoration && editingTextId && !readOnly && (
           <textarea
             ref={textareaRef}
             value={editingTextValue}
