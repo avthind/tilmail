@@ -1,0 +1,16 @@
+import type { Metadata } from 'next'
+import type { ReactNode } from 'react'
+
+export const metadata: Metadata = {
+  title: 'TILmail - Create & Share Digital Postcards',
+  description: 'Create and share personalized digital postcards',
+}
+
+export default function CardLayout({
+  children,
+}: {
+  children: ReactNode
+}) {
+  return <>{children}</>
+}
+

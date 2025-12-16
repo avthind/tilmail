@@ -40,10 +40,17 @@
   }
 }
 
-.attribution {
+.attributionContainer {
   position: fixed;
   bottom: 20px;
   left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+}
+
+.attribution {
   padding: 0 10px;
   height: 28px;
   min-height: 28px;
@@ -55,15 +62,18 @@
   color: var(--dark-teal);
   font-size: 10px;
   font-family: 'Inter', sans-serif;
-  z-index: 100;
   pointer-events: none;
   box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
-  .attribution {
+  .attributionContainer {
     bottom: 10px;
     left: 10px;
+    gap: 3px;
+  }
+  
+  .attribution {
     font-size: 8px;
     padding: 0 8px;
     height: 24px;
@@ -76,9 +86,15 @@
   bottom: 20px;
   right: 20px;
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+}
+
+.socialRow {
+  display: flex;
   gap: 4px;
   align-items: center;
-  z-index: 100;
 }
 
 .socialLinks a {
@@ -102,6 +118,10 @@
   .socialLinks {
     bottom: 10px;
     right: 10px;
+    gap: 3px;
+  }
+  
+  .socialRow {
     gap: 3px;
   }
   
