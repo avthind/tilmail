@@ -14,8 +14,34 @@ function CardViewerPage() {
   const { mode, setMode } = useAppStore()
 
   useEffect(() => {
-    // Set document title for static export compatibility
-    document.title = 'TILmail - Create & Share Digital Postcards'
+    // Set document title and meta tags for static export compatibility
+    document.title = 'I made you a postcard! | TILmail'
+    
+    // Update meta tags for better social sharing
+    const updateMetaTag = (property: string, content: string, isProperty = true) => {
+      const attr = isProperty ? 'property' : 'name'
+      let meta = document.querySelector(`meta[${attr}="${property}"]`)
+      if (!meta) {
+        meta = document.createElement('meta')
+        meta.setAttribute(attr, property)
+        document.head.appendChild(meta)
+      }
+      meta.setAttribute('content', content)
+    }
+    
+    // Open Graph tags
+    updateMetaTag('og:title', 'I made you a postcard!')
+    updateMetaTag('og:description', 'I made you a postcard! Check it out on TILmail.')
+    updateMetaTag('og:type', 'website')
+    updateMetaTag('og:site_name', 'TILmail')
+    
+    // Twitter Card tags
+    updateMetaTag('twitter:card', 'summary_large_image', false)
+    updateMetaTag('twitter:title', 'I made you a postcard!', false)
+    updateMetaTag('twitter:description', 'I made you a postcard! Check it out on TILmail.', false)
+    
+    // Standard meta description
+    updateMetaTag('description', 'I made you a postcard! Check it out on TILmail.', false)
     
     // Check window.location for direct card URLs (e.g., /card/abc123 or /tilmail/card/abc123)
     const getCardId = () => {

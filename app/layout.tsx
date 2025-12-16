@@ -6,6 +6,17 @@ import ClientInit from '@/components/ClientInit'
 export const metadata: Metadata = {
   title: 'TILmail - Create & Share Digital Postcards',
   description: 'Create and share personalized digital postcards',
+  openGraph: {
+    title: 'TILmail - Create & Share Digital Postcards',
+    description: 'Create and share personalized digital postcards with stickers, drawings, and text',
+    type: 'website',
+    siteName: 'TILmail',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TILmail - Create & Share Digital Postcards',
+    description: 'Create and share personalized digital postcards',
+  },
 }
 
 export const viewport: Viewport = {

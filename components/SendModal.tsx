@@ -91,8 +91,8 @@ export default function SendModal({ onClose }: SendModalProps) {
     if (!shareLink) return
 
     const shareData = {
-      title: 'Check out my TILMail postcard!',
-      text: 'I created a postcard for you!',
+      title: 'I made you a postcard!',
+      text: 'I made you a postcard! Check it out!',
       url: shareLink,
     }
 
@@ -112,7 +112,7 @@ export default function SendModal({ onClose }: SendModalProps) {
   const handlePlatformShare = (platform: string) => {
     if (!shareLink) return
 
-    const text = encodeURIComponent('Check out my TILMail postcard!')
+    const text = encodeURIComponent('I made you a postcard!')
     const url = encodeURIComponent(shareLink)
 
     let shareUrl = ''
@@ -127,7 +127,7 @@ export default function SendModal({ onClose }: SendModalProps) {
         shareUrl = `https://wa.me/?text=${text}%20${url}`
         break
       case 'email':
-        window.location.href = `mailto:?subject=${encodeURIComponent('Check out my TILMail postcard!')}&body=${encodeURIComponent(`I created a postcard for you! ${shareLink}`)}`
+        window.location.href = `mailto:?subject=${encodeURIComponent('I made you a postcard!')}&body=${encodeURIComponent(`I made you a postcard! Check it out: ${shareLink}`)}`
         return
       case 'instagram':
         // Instagram doesn't support direct URL sharing, so copy link instead
