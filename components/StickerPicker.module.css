@@ -5,6 +5,61 @@
   box-sizing: border-box;
 }
 
+.categoryTabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  border-top: 1px solid rgba(106, 156, 137, 0.2);
+  border-bottom: 1px solid rgba(106, 156, 137, 0.2);
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.categoryTab {
+  flex: 1;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  color: var(--light-mint);
+  background: transparent;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: capitalize;
+}
+
+.categoryTab:hover:not(:disabled) {
+  background: rgba(106, 156, 137, 0.1);
+  color: var(--medium-teal);
+}
+
+.categoryTab:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.categoryTabActive {
+  background: var(--medium-teal);
+  color: var(--pure-white);
+}
+
+.categoryTabActive:hover {
+  background: var(--medium-teal);
+  color: var(--pure-white);
+}
+
+.emptyCategory {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 20px;
+  color: var(--light-mint);
+  font-size: 11px;
+  font-family: 'Nunito', sans-serif;
+}
+
 .stickerGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -83,6 +138,11 @@
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: auto;
+  -ms-interpolation-mode: bicubic;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .hint {
@@ -96,6 +156,18 @@
 @media (max-width: 768px) {
   .stickerPicker {
     padding: 8px;
+  }
+
+  .categoryTabs {
+    gap: 3px;
+    margin-bottom: 6px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .categoryTab {
+    padding: 2px 4px;
+    font-size: 9px;
   }
 
   .stickerGrid {
@@ -117,6 +189,11 @@
 }
 
 @media (max-width: 480px) {
+  .categoryTab {
+    padding: 1px 3px;
+    font-size: 8px;
+  }
+
   .stickerGrid {
     grid-template-columns: repeat(4, 1fr);
     gap: 4px;

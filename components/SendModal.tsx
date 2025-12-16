@@ -48,7 +48,7 @@ export default function SendModal({ onClose }: SendModalProps) {
 
       try {
         const cardId = await saveCard(decorations)
-        const shareUrl = `${window.location.origin}/card/${cardId}`
+        const shareUrl = `${window.location.origin}/tilmail/card/${cardId}`
         setShareLink(shareUrl)
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error'
