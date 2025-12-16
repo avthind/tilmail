@@ -1,188 +1,148 @@
 'use client'
 
+import { useState } from 'react'
 import { useAppStore } from '@/store/appStore'
 import styles from './StickerPicker.module.css'
 
-const STICKERS = [
-  { id: 'heart', name: 'Heart', color: '#ff6b6b' },
-  { id: 'star', name: 'Star', color: '#ffd93d' },
-  { id: 'smile', name: 'Smile', color: '#ffa500' },
-  { id: 'flower', name: 'Flower', color: '#ff69b4' },
-  { id: 'balloon', name: 'Balloon', color: '#4ecdc4' },
-  { id: 'cake', name: 'Cake', color: '#ff9f9f' },
-  { id: 'gift', name: 'Gift', color: '#ff6b9d' },
-  { id: 'party', name: 'Party Hat', color: '#ffd93d' },
-  { id: 'music', name: 'Music Note', color: '#a8d5e2' },
-  { id: 'rainbow', name: 'Rainbow', color: '#ff6b6b' },
-  { id: 'sun', name: 'Sun', color: '#ffd93d' },
-  { id: 'moon', name: 'Moon', color: '#c4c4ff' },
-  { id: 'butterfly', name: 'Butterfly', color: '#ff9f9f' },
-  { id: 'cloud', name: 'Cloud', color: '#e0e0e0' },
-  { id: 'lightning', name: 'Lightning', color: '#ffd93d' },
-  { id: 'fire', name: 'Fire', color: '#ff6b6b' },
-  { id: 'diamond', name: 'Diamond', color: '#a8d5e2' },
-  { id: 'clover', name: 'Clover', color: '#b5e5cf' },
-  { id: 'rocket', name: 'Rocket', color: '#ff6b6b' },
-  { id: 'unicorn', name: 'Unicorn', color: '#ff9f9f' },
-  { id: 'pizza', name: 'Pizza', color: '#ffd93d' },
-  { id: 'crown', name: 'Crown', color: '#ffd93d' },
+type StickerCategory = 'christmas' | 'food' | 'animals' | 'more'
+
+interface StickerFile {
+  category: StickerCategory
+  files: string[]
+}
+
+// Stickers organized by folder/category
+const STICKER_FILES: StickerFile[] = [
+  {
+    category: 'christmas',
+    files: [
+      'Tiny Little Xmas Parade - Baby Mitten.png',
+      'Tiny Little Xmas Parade - Cute Poinsettia.png',
+      'Tiny Little Xmas Parade - Cutie Tree.png',
+      'Tiny Little Xmas Parade - Glowy Candle.png',
+      'Tiny Little Xmas Parade - Grumpy Cookie.png',
+      'Tiny Little Xmas Parade - Happy Bag.png',
+      'Tiny Little Xmas Parade - Happy Glass.png',
+      'Tiny Little Xmas Parade - Jingly Bell.png',
+      'Tiny Little Xmas Parade - Joyful Crown.png',
+      'Tiny Little Xmas Parade - Merry Xmas Hat.png',
+      'Tiny Little Xmas Parade - Playful Gingerbread Man.png',
+      'Tiny Little Xmas Parade - Sad Xmas Sphere.png',
+      'Tiny Little Xmas Parade - Shining Xmas Light.png',
+      'Tiny Little Xmas Parade - Smiling Star.png',
+      'Tiny Little Xmas Parade - Sweet Candy Cane.png',
+      'Tiny Little Xmas Parade - Sweet Cherries.png',
+      'Tiny Little Xmas Parade - Tiny Gift.png',
+      'Tiny Little Xmas Parade - Xmas Boot.png',
+    ],
+  },
+  {
+    category: 'food',
+    files: [
+      'Isometric Stickers - Acai.png',
+      'Isometric Stickers - Beef.png',
+      'Isometric Stickers - Coffee.png',
+      'Isometric Stickers - Cup of Coffee.png',
+      'Isometric Stickers - Enchliladas.png',
+      'Isometric Stickers - French Bread.png',
+      'Isometric Stickers - Glass of Water.png',
+      'Isometric Stickers - Lentil.png',
+      'Isometric Stickers - Omelette.png',
+      'Isometric Stickers - Pizza.png',
+      'Isometric Stickers - Ramen.png',
+      'Isometric Stickers - Salad.png',
+      'Isometric Stickers - Scrambled Eggs.png',
+      'Isometric Stickers - Tacos.png',
+    ],
+  },
+  {
+    category: 'animals',
+    files: [
+      'Fuzzy Friends - Artsy Cat.png',
+      'Fuzzy Friends - Bee.png',
+      'Fuzzy Friends - Bird.png',
+      'Fuzzy Friends - Butterfly.png',
+      'Fuzzy Friends - Curious Bunny.png',
+      'Fuzzy Friends - Elegant Giraffe.png',
+      'Fuzzy Friends - Little Elephant.png',
+      'Fuzzy Friends - Mouse.png',
+      'Fuzzy Friends - Playful Fox.png',
+      'Fuzzy Friends - Romantic Bear.png',
+      'Fuzzy Friends - Sweet Koala.png',
+    ],
+  },
+  {
+    category: 'more',
+    files: [
+      'Fuzzy Friends - Balloon.png',
+      'Fuzzy Friends - Cloud.png',
+      'Fuzzy Friends - Daisy.png',
+      'Fuzzy Friends - Flower.png',
+      'Fuzzy Friends - Leaf.png',
+      'Fuzzy Friends - Roses.png',
+      'Isometric Stickers - Angry.png',
+      'Isometric Stickers - Cactus.png',
+      'Isometric Stickers - Fiddle Leaf Fig.png',
+      'Isometric Stickers - Gift.png',
+      'Isometric Stickers - Heart Eyes.png',
+      'Isometric Stickers - Instant Camera.png',
+      'Isometric Stickers - Lipstick.png',
+      'Isometric Stickers - Microphone.png',
+      'Isometric Stickers - Paper Airplane.png',
+      'Isometric Stickers - Sad.png',
+      'Isometric Stickers - Smile.png',
+      'Isometric Stickers - Weights.png',
+    ],
+  },
 ]
 
-// Generate sticker SVG data URL
-const getStickerSVG = (id: string, color: string): string => {
-  const svgs: Record<string, string> = {
-    heart: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 50c-8-6-20-16-20-24 0-6 4-10 10-10 3 0 6 2 10 6 4-4 7-6 10-6 6 0 10 4 10 10 0 8-12 18-20 24z" fill="${color}" stroke="#fff" stroke-width="2"/>
-    </svg>`,
-    star: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 4l8 18 20 2-15 14 4 20-17-11-17 11 4-20-15-14 20-2z" fill="${color}" stroke="#fff" stroke-width="2"/>
-    </svg>`,
-    smile: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="24" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="24" cy="26" r="3" fill="#fff"/>
-      <circle cx="40" cy="26" r="3" fill="#fff"/>
-      <path d="M20 38 Q32 44 44 38" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
-    </svg>`,
-    flower: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="12" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <ellipse cx="32" cy="16" rx="8" ry="12" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <ellipse cx="32" cy="48" rx="8" ry="12" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <ellipse cx="16" cy="32" rx="12" ry="8" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <ellipse cx="48" cy="32" rx="12" ry="8" fill="${color}" stroke="#fff" stroke-width="2"/>
-    </svg>`,
-    balloon: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="32" cy="28" rx="14" ry="18" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <path d="M32 46 L32 58 M28 54 L32 58 L36 54" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-    </svg>`,
-    cake: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <rect x="16" y="32" width="32" height="20" rx="2" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <rect x="20" y="24" width="24" height="8" rx="2" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="28" cy="20" r="2" fill="#fff"/>
-      <circle cx="36" cy="20" r="2" fill="#fff"/>
-      <circle cx="32" cy="16" r="2" fill="#fff"/>
-    </svg>`,
-    gift: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <rect x="20" y="24" width="24" height="28" rx="2" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <rect x="20" y="38" width="24" height="4" fill="#fff" opacity="0.8"/>
-      <rect x="30" y="24" width="4" height="28" fill="#fff" opacity="0.8"/>
-      <path d="M32 20 L32 24 M28 22 L36 22" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    </svg>`,
-    party: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 8 L28 32 L32 28 L36 32 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="32" cy="40" r="12" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="26" cy="36" r="2" fill="#fff"/>
-      <circle cx="38" cy="36" r="2" fill="#fff"/>
-      <path d="M24 44 Q32 48 40 44" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-    </svg>`,
-    music: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 16 L20 40 Q20 48 28 48 Q36 48 36 40 L36 20 L48 16 L48 36 Q48 44 40 44 Q32 44 32 36" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="28" cy="48" r="4" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="40" cy="44" r="4" fill="${color}" stroke="#fff" stroke-width="2"/>
-    </svg>`,
-    rainbow: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8 40 Q32 20 56 40" stroke="#ff6b6b" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <path d="M10 44 Q32 26 54 44" stroke="#ffd93d" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <path d="M12 48 Q32 32 52 48" stroke="#b5e5cf" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <path d="M14 52 Q32 38 50 52" stroke="#a8d5e2" stroke-width="4" fill="none" stroke-linecap="round"/>
-    </svg>`,
-    sun: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="16" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <line x1="32" y1="8" x2="32" y2="4" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="32" y1="60" x2="32" y2="56" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="8" y1="32" x2="4" y2="32" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="60" y1="32" x2="56" y2="32" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="18" y1="18" x2="15" y2="15" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="46" y1="46" x2="49" y2="49" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="46" y1="18" x2="49" y2="15" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-      <line x1="18" y1="46" x2="15" y2="49" stroke="${color}" stroke-width="3" stroke-linecap="round"/>
-    </svg>`,
-    moon: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 12 Q20 20 20 32 Q20 44 32 52 Q44 44 44 32 Q44 20 32 12 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="40" cy="24" r="4" fill="#fff" opacity="0.3"/>
-      <circle cx="36" cy="28" r="2" fill="#fff" opacity="0.2"/>
-    </svg>`,
-    butterfly: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <ellipse cx="20" cy="32" rx="12" ry="16" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <ellipse cx="44" cy="32" rx="12" ry="16" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <ellipse cx="32" cy="28" rx="4" ry="8" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <line x1="32" y1="20" x2="32" y2="44" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-      <circle cx="28" cy="24" r="2" fill="#fff"/>
-      <circle cx="36" cy="24" r="2" fill="#fff"/>
-    </svg>`,
-    cloud: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M20 40 Q12 40 12 32 Q12 24 20 24 Q22 18 28 18 Q34 18 36 24 Q44 24 44 32 Q44 40 36 40 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="24" cy="28" r="3" fill="#fff" opacity="0.3"/>
-      <circle cx="36" cy="30" r="2" fill="#fff" opacity="0.3"/>
-    </svg>`,
-    lightning: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 8 L24 32 L32 28 L40 52 L32 48 L24 56 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-    </svg>`,
-    fire: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 56 Q28 52 28 48 Q28 44 32 40 Q36 36 36 32 Q36 28 32 24 Q28 20 28 16 Q28 12 32 8 Q36 12 36 16 Q36 20 40 24 Q44 28 44 32 Q44 36 40 40 Q36 44 36 48 Q36 52 32 56 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <path d="M28 40 Q32 36 36 40" fill="#ffd93d" opacity="0.6"/>
-    </svg>`,
-    diamond: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 8 L48 32 L32 56 L16 32 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <path d="M32 8 L32 56 M16 32 L48 32" stroke="#fff" stroke-width="1.5" opacity="0.5"/>
-    </svg>`,
-    clover: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="32" r="8" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="20" cy="24" r="6" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="44" cy="24" r="6" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="20" cy="40" r="6" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="44" cy="40" r="6" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <line x1="32" y1="32" x2="32" y2="56" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    </svg>`,
-    rocket: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 8 L28 20 L32 24 L36 20 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <rect x="24" y="24" width="16" height="24" rx="2" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="32" cy="36" r="4" fill="#fff" opacity="0.8"/>
-      <path d="M20 48 L24 52 L20 56 M44 48 L40 52 L44 56" stroke="${color}" stroke-width="3" stroke-linecap="round" fill="none"/>
-      <path d="M24 52 L40 52" stroke="${color}" stroke-width="2" stroke-linecap="round"/>
-    </svg>`,
-    unicorn: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="32" cy="40" r="14" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <ellipse cx="24" cy="32" rx="6" ry="8" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <path d="M18 28 Q16 20 20 16 Q24 12 28 16" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <path d="M32 12 L30 20 L34 20 Z" fill="#ffd93d" stroke="#fff" stroke-width="2"/>
-      <circle cx="26" cy="30" r="2" fill="#fff"/>
-      <circle cx="30" cy="30" r="2" fill="#fff"/>
-      <path d="M24 36 Q28 38 32 36" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <path d="M20 44 Q24 48 28 46 Q32 48 36 46 Q40 48 44 44" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-    </svg>`,
-    pizza: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M32 32 L32 8 Q32 8 48 16 Q56 24 56 32 Q56 40 48 48 Q40 56 32 56 Q24 56 16 48 Q8 40 8 32 Q8 24 16 16 Q24 8 32 8 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="28" cy="24" r="2" fill="#fff"/>
-      <circle cx="36" cy="28" r="2" fill="#fff"/>
-      <circle cx="24" cy="36" r="2" fill="#fff"/>
-      <circle cx="40" cy="40" r="2" fill="#fff"/>
-      <path d="M32 32 L32 8" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-      <path d="M32 32 L48 16" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
-    </svg>`,
-    crown: `<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 44 L20 28 L24 36 L28 24 L32 40 L36 24 L40 36 L44 28 L48 44 Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <rect x="16" y="44" width="32" height="4" fill="${color}" stroke="#fff" stroke-width="2"/>
-      <circle cx="24" cy="32" r="3" fill="#fff" opacity="0.8"/>
-      <circle cx="32" cy="28" r="3" fill="#fff" opacity="0.8"/>
-      <circle cx="40" cy="32" r="3" fill="#fff" opacity="0.8"/>
-    </svg>`,
-  }
-  return `data:image/svg+xml;base64,${btoa(svgs[id] || '')}`
+// Helper function to generate a clean name from filename
+const generateName = (filename: string): string => {
+  // Remove file extension
+  let name = filename.replace(/\.(png|jpg|jpeg|svg|webp)$/i, '')
+  // Remove common prefixes like "Tiny Little Xmas Parade - " or "Isometric Stickers - " or "Fuzzy Friends - "
+  name = name.replace(/^(Tiny Little Xmas Parade|Isometric Stickers|Fuzzy Friends)\s*-\s*/i, '')
+  return name.trim()
 }
+
+// Helper function to generate ID from filename
+const generateId = (filename: string, category: StickerCategory): string => {
+  const name = generateName(filename)
+  // Convert to lowercase, replace spaces and special chars with hyphens
+  return `${category}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`
+}
+
+// Generate STICKERS array from folder structure
+const STICKERS = STICKER_FILES.flatMap(({ category, files }) =>
+  files.map((filename) => ({
+    id: generateId(filename, category),
+    name: generateName(filename),
+    file: `/stickers/${category}/${filename}`,
+    category: category as StickerCategory,
+  }))
+)
+
+const CATEGORIES: { id: StickerCategory; label: string }[] = [
+  { id: 'christmas', label: 'Christmas' },
+  { id: 'food', label: 'Food' },
+  { id: 'animals', label: 'Animals' },
+  { id: 'more', label: 'More' },
+]
 
 // Export function to get sticker data for placement
 export const getStickerData = (id: string) => {
   const sticker = STICKERS.find(s => s.id === id)
   if (!sticker) return null
   return {
-    url: getStickerSVG(id, sticker.color),
-    color: sticker.color,
-    scale: 0.5,
+    url: sticker.file,
+    color: '#ffffff', // Not used for image files, but kept for compatibility
+    scale: 0.6,
   }
 }
 
 export default function StickerPicker() {
   const { setSelectedSticker, selectedSticker, currentTool } = useAppStore()
+  const [selectedCategory, setSelectedCategory] = useState<StickerCategory>('christmas')
 
   const handleStickerClick = (stickerId: string) => {
     // Industry standard: clicking the same sticker again deselects it
@@ -195,36 +155,63 @@ export default function StickerPicker() {
     }
   }
 
+  // Filter stickers by selected category
+  const filteredStickers = STICKERS.filter(sticker => sticker.category === selectedCategory)
+
   return (
     <div className={styles.stickerPicker}>
-        <p className={styles.hint}>
+      <p className={styles.hint}>
         Click on card to place sticker.
-        </p>
+      </p>
+      <div className={styles.categoryTabs}>
+        {CATEGORIES.map((category) => {
+          const categoryStickerCount = STICKERS.filter(s => s.category === category.id).length
+          return (
+            <button
+              key={category.id}
+              className={`${styles.categoryTab} ${
+                selectedCategory === category.id ? styles.categoryTabActive : ''
+              }`}
+              onClick={() => setSelectedCategory(category.id)}
+              disabled={categoryStickerCount === 0}
+              title={categoryStickerCount === 0 ? 'No stickers in this category' : `${category.label} (${categoryStickerCount})`}
+            >
+              {category.label}
+            </button>
+          )
+        })}
+      </div>
       <div className={styles.stickerGrid}>
-        {STICKERS.map((sticker) => (
-          <button
-            key={sticker.id}
-            className={`${styles.stickerButton} ${
-              selectedSticker === sticker.id ? styles.selected : ''
-            }`}
-            onClick={() => handleStickerClick(sticker.id)}
-            aria-label={`Select ${sticker.name} sticker`}
-            title={selectedSticker === sticker.id ? `${sticker.name} selected - Click on card to place` : `Select ${sticker.name}`}
-          >
-            <img
-              src={getStickerSVG(sticker.id, sticker.color)}
-              alt={sticker.name}
-              className={styles.stickerImage}
-            />
-            {selectedSticker === sticker.id && (
-              <div className={styles.checkmark}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            )}
-          </button>
-        ))}
+        {filteredStickers.length > 0 ? (
+          filteredStickers.map((sticker) => (
+            <button
+              key={sticker.id}
+              className={`${styles.stickerButton} ${
+                selectedSticker === sticker.id ? styles.selected : ''
+              }`}
+              onClick={() => handleStickerClick(sticker.id)}
+              aria-label={`Select ${sticker.name} sticker`}
+              title={selectedSticker === sticker.id ? `${sticker.name} selected - Click on card to place` : `Select ${sticker.name}`}
+            >
+              <img
+                src={sticker.file}
+                alt={sticker.name}
+                className={styles.stickerImage}
+              />
+              {selectedSticker === sticker.id && (
+                <div className={styles.checkmark}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              )}
+            </button>
+          ))
+        ) : (
+          <div className={styles.emptyCategory}>
+            No stickers in this category yet
+          </div>
+        )}
       </div>
     </div>
   )

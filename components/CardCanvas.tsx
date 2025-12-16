@@ -313,6 +313,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     ctx.setTransform(1, 0, 0, 1, 0, 0) // Reset transform first
     ctx.scale(dpr, dpr)
     
+    // Enable high-quality image smoothing for all canvas operations
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    
     // Fill background immediately (before any other operations) to prevent white flash
     ctx.fillStyle = CARD_BACKGROUND_COLOR
     ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
@@ -532,7 +536,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       const padding = includeSelection ? 8 : 0
       
       if (dec.type === 'sticker') {
-        const scale = dec.data.scale || 0.15
+        const scale = dec.data.scale || 0.6
         const size = 64 * scale
         return {
           x: x - size / 2 - padding,
@@ -614,7 +618,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         const isEditing = currentTool === 'text' && decoration.type === 'text' && editingTextId === decoration.id
 
         if (decoration.type === 'sticker') {
-          const scale = decoration.data.scale || 0.15
+          const scale = decoration.data.scale || 0.4
           const stickerSize = 64 * scale
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
@@ -622,20 +626,37 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           // Phase 2: Selection indicators drawn separately on main canvas, not to offscreen
           // Draw selection border (only on main canvas, not to offscreen cache)
           if (!readOnly && currentTool === 'grab' && showFullSelection) {
-            const borderX = x - stickerSize / 2 - 8
-            const borderY = y - stickerSize / 2 - 8
-            const borderWidth = stickerSize + 16
-            const borderHeight = stickerSize + 16
+            // Calculate actual sticker dimensions for selection border
+            // We'll use the cached image if available to get aspect ratio
+            let borderWidth = stickerSize
+            let borderHeight = stickerSize
+            
+            if (decoration.data.url) {
+              const cachedImg = imageCache.current.get(decoration.data.url)
+              if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+                const imgAspectRatio = cachedImg.naturalWidth / cachedImg.naturalHeight
+                if (imgAspectRatio > 1) {
+                  borderHeight = stickerSize / imgAspectRatio
+                } else {
+                  borderWidth = stickerSize * imgAspectRatio
+                }
+              }
+            }
+            
+            const borderX = x - borderWidth / 2 - 8
+            const borderY = y - borderHeight / 2 - 8
+            const borderWidthFinal = borderWidth + 16
+            const borderHeightFinal = borderHeight + 16
             
             ctx.strokeStyle = '#6a9c89'
             ctx.lineWidth = 2
             ctx.setLineDash([5, 5])
-            ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
+            ctx.strokeRect(borderX, borderY, borderWidthFinal, borderHeightFinal)
             ctx.setLineDash([])
             
             // Draw delete button (X) in top-right corner
             const deleteBtnSize = 20
-            const deleteBtnX = borderX + borderWidth
+            const deleteBtnX = borderX + borderWidthFinal
             const deleteBtnY = borderY
             
             // Background circle
@@ -661,12 +682,31 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           if (decoration.data.url) {
             const img = await getCachedImage(decoration.data.url)
             if (img) {
+              // Preserve aspect ratio - calculate dimensions based on image's natural size
+              const imgAspectRatio = img.naturalWidth / img.naturalHeight
+              let drawWidth = stickerSize
+              let drawHeight = stickerSize
+              
+              // If image is wider than tall, constrain by width
+              if (imgAspectRatio > 1) {
+                drawHeight = stickerSize / imgAspectRatio
+              } else {
+                // If image is taller than wide, constrain by height
+                drawWidth = stickerSize * imgAspectRatio
+              }
+              
+              // Enable high-quality image smoothing for better rendering
+              ctx.imageSmoothingEnabled = true
+              ctx.imageSmoothingQuality = 'high'
+              
+              // Ensure transparency is preserved
+              ctx.globalCompositeOperation = 'source-over'
               ctx.drawImage(
                 img,
-                x - stickerSize / 2,
-                y - stickerSize / 2,
-                stickerSize,
-                stickerSize
+                x - drawWidth / 2,
+                y - drawHeight / 2,
+                drawWidth,
+                drawHeight
               )
             } else {
               // Fallback circle if image fails to load
@@ -1035,7 +1075,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       // Better hit detection based on type
       if (d.type === 'sticker') {
         const scale = d.data.scale || 0.15
-        const hitRadius = (64 * scale) / 2 + 5 // Sticker radius + padding
+        const baseSize = 64 * scale
+        const hitRadius = baseSize / 2 + 5 // Sticker radius + padding (using base size for hit detection)
         if (distance < hitRadius) {
           return d
         }
@@ -1090,7 +1131,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       const padding = 8
       
       if (dec.type === 'sticker') {
-        const scale = dec.data.scale || 0.15
+        const scale = dec.data.scale || 0.6
         const size = 64 * scale
         return {
           x: x - size / 2 - padding,
@@ -1256,7 +1297,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             x: coords.x,
             y: coords.y,
             data: stickerData,
-            scale: 0.5,
+            scale: 0.6,
             rotation: 0,
           }
           
@@ -1266,7 +1307,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           if (canvas) {
             const ctx = canvas.getContext('2d')
             if (ctx) {
-              const scale = newDecoration.scale || 0.5
+              const scale = newDecoration.scale || 0.6
               const stickerSize = 64 * scale
               const x = coords.canvasX
               const y = coords.canvasY
@@ -1276,12 +1317,29 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
                 const img = new Image()
                 // For data URLs, image loads instantly, so we can draw synchronously
                 img.onload = () => {
+                  // Preserve aspect ratio
+                  const imgAspectRatio = img.naturalWidth / img.naturalHeight
+                  let drawWidth = stickerSize
+                  let drawHeight = stickerSize
+                  
+                  if (imgAspectRatio > 1) {
+                    drawHeight = stickerSize / imgAspectRatio
+                  } else {
+                    drawWidth = stickerSize * imgAspectRatio
+                  }
+                  
+                  // Enable high-quality image smoothing
+                  ctx.imageSmoothingEnabled = true
+                  ctx.imageSmoothingQuality = 'high'
+                  
+                  // Ensure transparency is preserved
+                  ctx.globalCompositeOperation = 'source-over'
                   ctx.drawImage(
                     img,
-                    x - stickerSize / 2,
-                    y - stickerSize / 2,
-                    stickerSize,
-                    stickerSize
+                    x - drawWidth / 2,
+                    y - drawHeight / 2,
+                    drawWidth,
+                    drawHeight
                   )
                 }
                 img.onerror = () => {
@@ -1295,12 +1353,27 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
                 
                 // For data URLs, check if already loaded and draw immediately
                 if (img.complete && img.naturalWidth > 0) {
+                  const imgAspectRatio = img.naturalWidth / img.naturalHeight
+                  let drawWidth = stickerSize
+                  let drawHeight = stickerSize
+                  
+                  if (imgAspectRatio > 1) {
+                    drawHeight = stickerSize / imgAspectRatio
+                  } else {
+                    drawWidth = stickerSize * imgAspectRatio
+                  }
+                  
+                  // Enable high-quality image smoothing
+                  ctx.imageSmoothingEnabled = true
+                  ctx.imageSmoothingQuality = 'high'
+                  
+                  ctx.globalCompositeOperation = 'source-over'
                   ctx.drawImage(
                     img,
-                    x - stickerSize / 2,
-                    y - stickerSize / 2,
-                    stickerSize,
-                    stickerSize
+                    x - drawWidth / 2,
+                    y - drawHeight / 2,
+                    drawWidth,
+                    drawHeight
                   )
                 }
               }
