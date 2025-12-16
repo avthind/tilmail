@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import CardCanvas from '@/components/CardCanvas'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -9,9 +8,7 @@ import { loadCard } from '@/lib/firebase'
 import { useAppStore } from '@/store/appStore'
 import styles from './card.module.css'
 
-function CardViewerContent() {
-  const searchParams = useSearchParams()
-  const cardId = searchParams.get('id') || ''
+function CardViewerPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { mode, setMode } = useAppStore()
@@ -20,13 +17,36 @@ function CardViewerContent() {
     // Set document title for static export compatibility
     document.title = 'TILmail - Create & Share Digital Postcards'
     
-    // Check window.location for direct card URLs (e.g., /card/abc123)
-    const pathCardId = typeof window !== 'undefined' 
-      ? window.location.pathname.replace('/card', '').replace(/^\//, '').split('/')[0]
-      : null
-    const id = cardId || pathCardId || ''
+    // Check window.location for direct card URLs (e.g., /card/abc123 or /tilmail/card/abc123)
+    const getCardId = () => {
+      if (typeof window === 'undefined') return null
+      
+      const pathname = window.location.pathname
+      const href = window.location.href
+      
+      // Try to match /card/ID or /tilmail/card/ID pattern
+      let cardId: string | null = null
+      
+      // Method 1: Check pathname directly
+      const pathMatch = pathname.match(/(?:^\/tilmail)?\/card\/([^\/\?]+)/)
+      if (pathMatch && pathMatch[1]) {
+        cardId = pathMatch[1]
+      }
+      
+      // Method 2: Check full href (most reliable - works even with Firebase rewrites)
+      if (!cardId) {
+        const hrefMatch = href.match(/(?:^\/tilmail)?\/card\/([^\/\?\#]+)/)
+        if (hrefMatch && hrefMatch[1]) {
+          cardId = hrefMatch[1]
+        }
+      }
+      
+      return cardId
+    }
     
-    if (id && id !== 'card' && id.length > 0) {
+    const cardId = getCardId()
+    
+    if (cardId && cardId.length > 0) {
       // Clear existing decorations first
       useAppStore.setState({ 
         decorations: { front: [], back: [] },
@@ -35,7 +55,7 @@ function CardViewerContent() {
         selectedDecoration: null
       })
       
-      loadCard(id)
+      loadCard(cardId)
         .then((data) => {
           if (data && data.decorations) {
             // Ensure front and back are arrays
@@ -64,11 +84,9 @@ function CardViewerContent() {
         })
     } else {
       setLoading(false)
-      if (!id || id === 'card') {
-        setError('No card ID provided')
-      }
+      setError('No card ID provided')
     }
-  }, [cardId])
+  }, [])
 
   const handleFlip = () => {
     setMode(mode === 'front' ? 'back' : 'front')
@@ -168,42 +186,19 @@ function CardViewerContent() {
             </svg>
           </a>
         </div>
-        </div>
       </div>
     </div>
   )
 }
 
-export default function CardViewerPage() {
+// Wrap with ErrorBoundary
+function CardViewerPageWithErrorBoundary() {
   return (
     <ErrorBoundary>
-    <Suspense fallback={
-        <div className={styles.container} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--pale-mint)' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              border: '4px solid var(--light-mint)', 
-              borderTop: '4px solid var(--medium-teal)', 
-              borderRadius: '50%', 
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 16px'
-            }}></div>
-            <div style={{ fontSize: '16px', color: 'var(--dark-teal)', fontWeight: 500 }}>
-              Loading card...
-            </div>
-            <style jsx>{`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}</style>
-          </div>
-      </div>
-    }>
-      <CardViewerContent />
-    </Suspense>
+      <CardViewerPage />
     </ErrorBoundary>
   )
 }
+
+export default CardViewerPageWithErrorBoundary
 
