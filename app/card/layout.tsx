@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'TILmail - View Card',
-  description: 'View a shared digital postcard',
+  title: 'TILmail - Create & Share Digital Postcards',
+  description: 'Create and share personalized digital postcards',
 }
 
 export default function CardLayout({

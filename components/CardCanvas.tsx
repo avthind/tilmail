@@ -659,7 +659,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             ctx.strokeRect(borderX, borderY, borderWidthFinal, borderHeightFinal)
             
             // Draw resize handle (bottom-right corner) - square
-            const handleSize = 10
+            const handleSize = 12 // Visually matches 14px diameter circles
             const resizeHandleX = borderX + borderWidthFinal - handleSize / 2
             const resizeHandleY = borderY + borderHeightFinal - handleSize / 2
             
@@ -672,7 +672,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             // Draw rotation handle (top-left corner of outline)
             const rotationHandleX = borderX
             const rotationHandleY = borderY
-            const rotationHandleRadius = 10 // Same size as delete button (20px diameter = 10px radius)
+            const rotationHandleRadius = 7.5 // 15px diameter = 7.5px radius
             
             ctx.fillStyle = '#16423c'
             ctx.strokeStyle = '#ffffff'
@@ -685,23 +685,23 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             // Draw rotation icon (circular arrow) - moved inward to avoid blending with border
             ctx.strokeStyle = '#ffffff'
             ctx.lineWidth = 1.5
-            const arrowRadius = rotationHandleRadius - 3.5 // Move arrow 3.5px inward from edge
+            const arrowRadius = rotationHandleRadius - 2.5 // Move arrow 2.5px inward from edge
             ctx.beginPath()
             ctx.arc(rotationHandleX, rotationHandleY, arrowRadius, 0.3 * Math.PI, 1.7 * Math.PI)
             ctx.stroke()
-            // Arrow head - larger and more visible
+            // Arrow head - scaled proportionally
             const arrowEndX = rotationHandleX + arrowRadius * Math.cos(1.7 * Math.PI)
             const arrowEndY = rotationHandleY + arrowRadius * Math.sin(1.7 * Math.PI)
             ctx.beginPath()
             ctx.moveTo(arrowEndX, arrowEndY)
-            ctx.lineTo(arrowEndX - 3.5, arrowEndY - 2.5)
-            ctx.lineTo(arrowEndX - 1, arrowEndY)
+            ctx.lineTo(arrowEndX - 2.5, arrowEndY - 2)
+            ctx.lineTo(arrowEndX - 0.5, arrowEndY)
             ctx.closePath()
             ctx.fillStyle = '#ffffff'
             ctx.fill()
             
             // Draw delete button (X) in top-right corner
-            const deleteBtnSize = 20
+            const deleteBtnSize = 15 // 1px bigger than before
             const deleteBtnX = borderX + borderWidthFinal
             const deleteBtnY = borderY
             
@@ -715,7 +715,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             ctx.strokeStyle = '#ffffff'
             ctx.lineWidth = 2
             ctx.lineCap = 'round'
-            const crossSize = 8
+            const crossSize = 6 // Scaled down proportionally with smaller button
             ctx.beginPath()
             ctx.moveTo(deleteBtnX - crossSize / 2, deleteBtnY - crossSize / 2)
             ctx.lineTo(deleteBtnX + crossSize / 2, deleteBtnY + crossSize / 2)
@@ -793,6 +793,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
+          const rotation = decoration.rotation || 0
 
           // Measure text width and height for proper underline and border positioning (support multi-line)
           const text = decoration.data.text || ''
@@ -812,6 +813,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           // Text tool: No canvas border - only textarea border when editing
           // Grab tool: dotted border for selection
           if (!readOnly && currentTool === 'grab' && showFullSelection) {
+            // Draw border and handles WITHOUT rotation (like stickers)
             // Grab tool: dotted border for selection
             const borderX = x - textWidth / 2 - 8
             const borderY = y - textHeight / 2 - 8
@@ -823,7 +825,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
             
             // Draw resize handle (bottom-right corner) - square
-            const handleSize = 10
+            const handleSize = 12 // Visually matches 14px diameter circles
             const resizeHandleX = borderX + borderWidth - handleSize / 2
             const resizeHandleY = borderY + borderHeight - handleSize / 2
             
@@ -833,10 +835,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             ctx.fillRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
             ctx.strokeRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
             
-            // Draw rotation handle (top-center)
-            const rotationHandleX = borderX + borderWidth / 2
-            const rotationHandleY = borderY - 20
-            const rotationHandleRadius = 6
+            // Draw rotation handle (top-left corner of outline)
+            const rotationHandleX = borderX
+            const rotationHandleY = borderY
+            const rotationHandleRadius = 7.5 // 15px diameter = 7.5px radius
             
             ctx.fillStyle = '#16423c'
             ctx.strokeStyle = '#ffffff'
@@ -849,23 +851,23 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             // Draw rotation icon (circular arrow) - moved inward to avoid blending with border
             ctx.strokeStyle = '#ffffff'
             ctx.lineWidth = 1.5
-            const arrowRadius = rotationHandleRadius - 3.5 // Move arrow 3.5px inward from edge
+            const arrowRadius = rotationHandleRadius - 2.5 // Move arrow 2.5px inward from edge
             ctx.beginPath()
             ctx.arc(rotationHandleX, rotationHandleY, arrowRadius, 0.3 * Math.PI, 1.7 * Math.PI)
             ctx.stroke()
-            // Arrow head - larger and more visible
+            // Arrow head - scaled proportionally
             const arrowEndX = rotationHandleX + arrowRadius * Math.cos(1.7 * Math.PI)
             const arrowEndY = rotationHandleY + arrowRadius * Math.sin(1.7 * Math.PI)
             ctx.beginPath()
             ctx.moveTo(arrowEndX, arrowEndY)
-            ctx.lineTo(arrowEndX - 3.5, arrowEndY - 2.5)
-            ctx.lineTo(arrowEndX - 1, arrowEndY)
+            ctx.lineTo(arrowEndX - 2.5, arrowEndY - 2)
+            ctx.lineTo(arrowEndX - 0.5, arrowEndY)
             ctx.closePath()
             ctx.fillStyle = '#ffffff'
             ctx.fill()
             
             // Draw delete button (X) in top-right corner
-            const deleteBtnSize = 20
+            const deleteBtnSize = 15 // 1px bigger than before
             const deleteBtnX = borderX + borderWidth
             const deleteBtnY = borderY
             
@@ -879,7 +881,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             ctx.strokeStyle = '#ffffff'
             ctx.lineWidth = 2
             ctx.lineCap = 'round'
-            const crossSize = 8
+            const crossSize = 6 // Scaled down proportionally with smaller button
             ctx.beginPath()
             ctx.moveTo(deleteBtnX - crossSize / 2, deleteBtnY - crossSize / 2)
             ctx.lineTo(deleteBtnX + crossSize / 2, deleteBtnY + crossSize / 2)
@@ -893,6 +895,14 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           const isCurrentlyEditing = editingTextId === decoration.id && currentTool === 'text'
           
           if (!isCurrentlyEditing) {
+            // Apply rotation for text
+            if (rotation !== 0) {
+              ctx.save()
+              ctx.translate(x, y)
+              ctx.rotate((rotation * Math.PI) / 180)
+              ctx.translate(-x, -y)
+            }
+            
             // Draw text - support multi-line text
             const text = decoration.data.text || ''
             const lines = text.split('\n')
@@ -915,15 +925,47 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               ctx.lineTo(x + textWidth / 2, underlineY)
               ctx.stroke()
             }
+            
+            if (rotation !== 0) {
+              ctx.restore()
+            }
           }
         } else if (decoration.type === 'drawing') {
           if (decoration.data.paths) {
+            const rotation = decoration.rotation || 0
+            
             ctx.strokeStyle = decoration.data.color || '#000000'
             ctx.lineWidth = decoration.data.lineWidth || 2
             ctx.lineCap = 'round'
             ctx.lineJoin = 'round'
             
-            // Calculate bounding box for selection indicator
+            // First, calculate the bounding box of the unrotated drawing to find its center
+            let unrotatedMinX = Infinity, unrotatedMinY = Infinity, unrotatedMaxX = -Infinity, unrotatedMaxY = -Infinity
+            
+            decoration.data.paths.forEach((path: number[][]) => {
+              path.forEach((point: number[]) => {
+                const px = point[0] + CARD_WIDTH / 2
+                const py = point[1] + CARD_HEIGHT / 2
+                unrotatedMinX = Math.min(unrotatedMinX, px)
+                unrotatedMinY = Math.min(unrotatedMinY, py)
+                unrotatedMaxX = Math.max(unrotatedMaxX, px)
+                unrotatedMaxY = Math.max(unrotatedMaxY, py)
+              })
+            })
+            
+            // Calculate center of the drawing
+            const centerX = (unrotatedMinX + unrotatedMaxX) / 2
+            const centerY = (unrotatedMinY + unrotatedMaxY) / 2
+            
+            // Apply rotation around the drawing's center
+            if (rotation !== 0) {
+              ctx.save()
+              ctx.translate(centerX, centerY)
+              ctx.rotate((rotation * Math.PI) / 180)
+              ctx.translate(-centerX, -centerY)
+            }
+            
+            // Calculate bounding box for selection indicator (after rotation)
             let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
             
             decoration.data.paths.forEach((path: number[][]) => {
@@ -933,30 +975,65 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
                 const startY = (path[0][1] + CARD_HEIGHT / 2)
                 ctx.moveTo(startX, startY)
                 
-                // Update bounding box
+                // Update bounding box (these will be rotated by the transform)
                 minX = Math.min(minX, startX)
                 minY = Math.min(minY, startY)
                 maxX = Math.max(maxX, startX)
                 maxY = Math.max(maxY, startY)
                 
                 for (let i = 1; i < path.length; i++) {
-                  const x = (path[i][0] + CARD_WIDTH / 2)
-                  const y = (path[i][1] + CARD_HEIGHT / 2)
-                  ctx.lineTo(x, y)
+                  const px = (path[i][0] + CARD_WIDTH / 2)
+                  const py = (path[i][1] + CARD_HEIGHT / 2)
+                  ctx.lineTo(px, py)
                   
                   // Update bounding box
-                  minX = Math.min(minX, x)
-                  minY = Math.min(minY, y)
-                  maxX = Math.max(maxX, x)
-                  maxY = Math.max(maxY, y)
+                  minX = Math.min(minX, px)
+                  minY = Math.min(minY, py)
+                  maxX = Math.max(maxX, px)
+                  maxY = Math.max(maxY, py)
                 }
                 ctx.stroke()
               }
             })
             
+            if (rotation !== 0) {
+              ctx.restore()
+              
+              // Recalculate bounding box for rotated drawing
+              const angleRad = (rotation * Math.PI) / 180
+              const cos = Math.cos(angleRad)
+              const sin = Math.sin(angleRad)
+              
+              minX = Infinity
+              minY = Infinity
+              maxX = -Infinity
+              maxY = -Infinity
+              
+              decoration.data.paths.forEach((path: number[][]) => {
+                path.forEach((point: number[]) => {
+                  const px = point[0] + CARD_WIDTH / 2
+                  const py = point[1] + CARD_HEIGHT / 2
+                  
+                  // Rotate point around center
+                  const dx = px - centerX
+                  const dy = py - centerY
+                  const rotatedX = centerX + (dx * cos - dy * sin)
+                  const rotatedY = centerY + (dx * sin + dy * cos)
+                  
+                  minX = Math.min(minX, rotatedX)
+                  minY = Math.min(minY, rotatedY)
+                  maxX = Math.max(maxX, rotatedX)
+                  maxY = Math.max(maxY, rotatedY)
+                })
+              })
+            }
+            
             // Draw selection border and delete button if selected (only in grab mode, not in read-only)
             if (!readOnly && currentTool === 'grab' && showFullSelection && minX !== Infinity) {
+              // Draw border and handles WITHOUT rotation (like stickers)
+              // Use the already-calculated rotated bounding box
               const padding = 8
+              
               const borderX = minX - padding
               const borderY = minY - padding
               const borderWidth = maxX - minX + padding * 2
@@ -967,46 +1044,49 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
               
               // Draw resize handle (bottom-right corner) - square
-              const handleSize = 12
+              const handleSize = 12 // Visually matches 14px diameter circles
               const resizeHandleX = borderX + borderWidth - handleSize / 2
               const resizeHandleY = borderY + borderHeight - handleSize / 2
               
               ctx.fillStyle = '#16423c'
               ctx.strokeStyle = '#ffffff'
-              ctx.lineWidth = 2
+              ctx.lineWidth = 1.5
               ctx.fillRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
               ctx.strokeRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
               
-              // Draw rotation handle (top-center)
-              const rotationHandleX = borderX + borderWidth / 2
-              const rotationHandleY = borderY - 20
-              const rotationHandleRadius = 8
+              // Draw rotation handle (top-left corner of outline)
+              const rotationHandleX = borderX
+              const rotationHandleY = borderY
+              const rotationHandleRadius = 7.5 // 15px diameter = 7.5px radius
               
               ctx.fillStyle = '#16423c'
               ctx.strokeStyle = '#ffffff'
-              ctx.lineWidth = 2
+              ctx.lineWidth = 1.5
               ctx.beginPath()
               ctx.arc(rotationHandleX, rotationHandleY, rotationHandleRadius, 0, Math.PI * 2)
               ctx.fill()
               ctx.stroke()
               
-              // Draw rotation icon (circular arrow)
+              // Draw rotation icon (circular arrow) - moved inward to avoid blending with border
               ctx.strokeStyle = '#ffffff'
               ctx.lineWidth = 1.5
+              const arrowRadius = rotationHandleRadius - 2.5 // Move arrow 2.5px inward from edge
               ctx.beginPath()
-              ctx.arc(rotationHandleX, rotationHandleY, rotationHandleRadius - 2, 0.3 * Math.PI, 1.7 * Math.PI)
+              ctx.arc(rotationHandleX, rotationHandleY, arrowRadius, 0.3 * Math.PI, 1.7 * Math.PI)
               ctx.stroke()
-              // Arrow head
+              // Arrow head - larger and more visible
+              const arrowEndX = rotationHandleX + arrowRadius * Math.cos(1.7 * Math.PI)
+              const arrowEndY = rotationHandleY + arrowRadius * Math.sin(1.7 * Math.PI)
               ctx.beginPath()
-              ctx.moveTo(rotationHandleX + (rotationHandleRadius - 2) * Math.cos(1.7 * Math.PI), rotationHandleY + (rotationHandleRadius - 2) * Math.sin(1.7 * Math.PI))
-              ctx.lineTo(rotationHandleX + (rotationHandleRadius - 2) * Math.cos(1.7 * Math.PI) - 3, rotationHandleY + (rotationHandleRadius - 2) * Math.sin(1.7 * Math.PI) - 2)
-              ctx.lineTo(rotationHandleX + (rotationHandleRadius - 2) * Math.cos(1.7 * Math.PI) - 1, rotationHandleY + (rotationHandleRadius - 2) * Math.sin(1.7 * Math.PI))
+              ctx.moveTo(arrowEndX, arrowEndY)
+              ctx.lineTo(arrowEndX - 3.5, arrowEndY - 2.5)
+              ctx.lineTo(arrowEndX - 1, arrowEndY)
               ctx.closePath()
               ctx.fillStyle = '#ffffff'
               ctx.fill()
               
               // Draw delete button (X) in top-right corner
-              const deleteBtnSize = 20
+              const deleteBtnSize = 15 // 1px bigger than before
               const deleteBtnX = borderX + borderWidth
               const deleteBtnY = borderY
               
@@ -1020,7 +1100,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               ctx.strokeStyle = '#ffffff'
               ctx.lineWidth = 2
               ctx.lineCap = 'round'
-              const crossSize = 8
+              const crossSize = 6 // Scaled down proportionally with smaller button
               ctx.beginPath()
               ctx.moveTo(deleteBtnX - crossSize / 2, deleteBtnY - crossSize / 2)
               ctx.lineTo(deleteBtnX + crossSize / 2, deleteBtnY + crossSize / 2)
@@ -1268,12 +1348,28 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       
       if (dec.type === 'sticker') {
         const scale = dec.data.scale || 0.6
-        const size = 64 * scale
+        const stickerSize = 64 * scale
+        let borderWidth = stickerSize
+        let borderHeight = stickerSize
+        
+        // Use aspect ratio if image is cached
+        if (dec.data.url) {
+          const cachedImg = imageCache.current.get(dec.data.url)
+          if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+            const imgAspectRatio = cachedImg.naturalWidth / cachedImg.naturalHeight
+            if (imgAspectRatio > 1) {
+              borderHeight = stickerSize / imgAspectRatio
+            } else {
+              borderWidth = stickerSize * imgAspectRatio
+            }
+          }
+        }
+        
         return {
-          x: x - size / 2 - padding,
-          y: y - size / 2 - padding,
-          width: size + padding * 2,
-          height: size + padding * 2
+          x: x - borderWidth / 2 - padding,
+          y: y - borderHeight / 2 - padding,
+          width: borderWidth + padding * 2,
+          height: borderHeight + padding * 2
         }
       } else if (dec.type === 'text') {
         const canvas = canvasRef.current
@@ -1305,17 +1401,60 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           height: textHeight + padding * 2
         }
       } else if (dec.type === 'drawing' && dec.data.paths) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        const rotation = dec.rotation || 0
+        
+        // First calculate unrotated bounding box to find center
+        let unrotatedMinX = Infinity, unrotatedMinY = Infinity, unrotatedMaxX = -Infinity, unrotatedMaxY = -Infinity
+        
         dec.data.paths.forEach((path: number[][]) => {
           path.forEach((point: number[]) => {
             const px = point[0] + CARD_WIDTH / 2
             const py = point[1] + CARD_HEIGHT / 2
-            minX = Math.min(minX, px)
-            minY = Math.min(minY, py)
-            maxX = Math.max(maxX, px)
-            maxY = Math.max(maxY, py)
+            unrotatedMinX = Math.min(unrotatedMinX, px)
+            unrotatedMinY = Math.min(unrotatedMinY, py)
+            unrotatedMaxX = Math.max(unrotatedMaxX, px)
+            unrotatedMaxY = Math.max(unrotatedMaxY, py)
           })
         })
+        
+        // Calculate center of the drawing
+        const centerX = (unrotatedMinX + unrotatedMaxX) / 2
+        const centerY = (unrotatedMinY + unrotatedMaxY) / 2
+        
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        
+        if (rotation !== 0) {
+          // Calculate bounding box from rotated paths
+          const angleRad = (rotation * Math.PI) / 180
+          const cos = Math.cos(angleRad)
+          const sin = Math.sin(angleRad)
+          
+          dec.data.paths.forEach((path: number[][]) => {
+            path.forEach((point: number[]) => {
+              // Point in canvas coordinates
+              const px = point[0] + CARD_WIDTH / 2
+              const py = point[1] + CARD_HEIGHT / 2
+              
+              // Rotate point around center
+              const dx = px - centerX
+              const dy = py - centerY
+              const rotatedX = centerX + (dx * cos - dy * sin)
+              const rotatedY = centerY + (dx * sin + dy * cos)
+              
+              minX = Math.min(minX, rotatedX)
+              minY = Math.min(minY, rotatedY)
+              maxX = Math.max(maxX, rotatedX)
+              maxY = Math.max(maxY, rotatedY)
+            })
+          })
+        } else {
+          // No rotation - use unrotated bounding box
+          minX = unrotatedMinX
+          minY = unrotatedMinY
+          maxX = unrotatedMaxX
+          maxY = unrotatedMaxY
+        }
+        
         if (minX === Infinity) return null
         return {
           x: minX - padding,
@@ -1329,10 +1468,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     
     if (!bounds) return false
     
-    const deleteBtnSize = 20
+    const deleteBtnSize = 15 // 1px bigger than before
     const deleteBtnX = bounds.x + bounds.width
     const deleteBtnY = bounds.y
-    const hitRadius = deleteBtnSize / 2
+    const hitRadius = deleteBtnSize / 2 + 4 // Add buffer for easier clicking
     
     const distance = Math.sqrt(
       Math.pow(coords.canvasX - deleteBtnX, 2) + Math.pow(coords.canvasY - deleteBtnY, 2)
@@ -1401,17 +1540,60 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           height: textHeight + padding * 2
         }
       } else if (dec.type === 'drawing' && dec.data.paths) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        const rotation = dec.rotation || 0
+        
+        // First calculate unrotated bounding box to find center
+        let unrotatedMinX = Infinity, unrotatedMinY = Infinity, unrotatedMaxX = -Infinity, unrotatedMaxY = -Infinity
+        
         dec.data.paths.forEach((path: number[][]) => {
           path.forEach((point: number[]) => {
             const px = point[0] + CARD_WIDTH / 2
             const py = point[1] + CARD_HEIGHT / 2
-            minX = Math.min(minX, px)
-            minY = Math.min(minY, py)
-            maxX = Math.max(maxX, px)
-            maxY = Math.max(maxY, py)
+            unrotatedMinX = Math.min(unrotatedMinX, px)
+            unrotatedMinY = Math.min(unrotatedMinY, py)
+            unrotatedMaxX = Math.max(unrotatedMaxX, px)
+            unrotatedMaxY = Math.max(unrotatedMaxY, py)
           })
         })
+        
+        // Calculate center of the drawing
+        const centerX = (unrotatedMinX + unrotatedMaxX) / 2
+        const centerY = (unrotatedMinY + unrotatedMaxY) / 2
+        
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        
+        if (rotation !== 0) {
+          // Calculate bounding box from rotated paths
+          const angleRad = (rotation * Math.PI) / 180
+          const cos = Math.cos(angleRad)
+          const sin = Math.sin(angleRad)
+          
+          dec.data.paths.forEach((path: number[][]) => {
+            path.forEach((point: number[]) => {
+              // Point in canvas coordinates
+              const px = point[0] + CARD_WIDTH / 2
+              const py = point[1] + CARD_HEIGHT / 2
+              
+              // Rotate point around center
+              const dx = px - centerX
+              const dy = py - centerY
+              const rotatedX = centerX + (dx * cos - dy * sin)
+              const rotatedY = centerY + (dx * sin + dy * cos)
+              
+              minX = Math.min(minX, rotatedX)
+              minY = Math.min(minY, rotatedY)
+              maxX = Math.max(maxX, rotatedX)
+              maxY = Math.max(maxY, rotatedY)
+            })
+          })
+        } else {
+          // No rotation - use unrotated bounding box
+          minX = unrotatedMinX
+          minY = unrotatedMinY
+          maxX = unrotatedMaxX
+          maxY = unrotatedMaxY
+        }
+        
         if (minX === Infinity) return null
         return {
           x: minX - padding,
@@ -1425,7 +1607,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     
     if (!bounds) return false
     
-    const handleSize = 10
+    const handleSize = 12 // Visually matches 14px diameter circles
     const handleX = bounds.x + bounds.width
     const handleY = bounds.y + bounds.height
     const hitRadius = handleSize / 2 + 4
@@ -1497,17 +1679,60 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           height: textHeight + padding * 2
         }
       } else if (dec.type === 'drawing' && dec.data.paths) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        const rotation = dec.rotation || 0
+        
+        // First calculate unrotated bounding box to find center
+        let unrotatedMinX = Infinity, unrotatedMinY = Infinity, unrotatedMaxX = -Infinity, unrotatedMaxY = -Infinity
+        
         dec.data.paths.forEach((path: number[][]) => {
           path.forEach((point: number[]) => {
             const px = point[0] + CARD_WIDTH / 2
             const py = point[1] + CARD_HEIGHT / 2
-            minX = Math.min(minX, px)
-            minY = Math.min(minY, py)
-            maxX = Math.max(maxX, px)
-            maxY = Math.max(maxY, py)
+            unrotatedMinX = Math.min(unrotatedMinX, px)
+            unrotatedMinY = Math.min(unrotatedMinY, py)
+            unrotatedMaxX = Math.max(unrotatedMaxX, px)
+            unrotatedMaxY = Math.max(unrotatedMaxY, py)
           })
         })
+        
+        // Calculate center of the drawing
+        const centerX = (unrotatedMinX + unrotatedMaxX) / 2
+        const centerY = (unrotatedMinY + unrotatedMaxY) / 2
+        
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        
+        if (rotation !== 0) {
+          // Calculate bounding box from rotated paths
+          const angleRad = (rotation * Math.PI) / 180
+          const cos = Math.cos(angleRad)
+          const sin = Math.sin(angleRad)
+          
+          dec.data.paths.forEach((path: number[][]) => {
+            path.forEach((point: number[]) => {
+              // Point in canvas coordinates
+              const px = point[0] + CARD_WIDTH / 2
+              const py = point[1] + CARD_HEIGHT / 2
+              
+              // Rotate point around center
+              const dx = px - centerX
+              const dy = py - centerY
+              const rotatedX = centerX + (dx * cos - dy * sin)
+              const rotatedY = centerY + (dx * sin + dy * cos)
+              
+              minX = Math.min(minX, rotatedX)
+              minY = Math.min(minY, rotatedY)
+              maxX = Math.max(maxX, rotatedX)
+              maxY = Math.max(maxY, rotatedY)
+            })
+          })
+        } else {
+          // No rotation - use unrotated bounding box
+          minX = unrotatedMinX
+          minY = unrotatedMinY
+          maxX = unrotatedMaxX
+          maxY = unrotatedMaxY
+        }
+        
         if (minX === Infinity) return null
         return {
           x: minX - padding,
@@ -1521,10 +1746,12 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     
     if (!bounds) return false
     
-    const handleRadius = 10 // Same size as delete button
+    const handleRadius = 7.5 // 15px diameter = 7.5px radius
+    const hitRadius = handleRadius + 6 // Increased buffer for easier clicking
+    
+    // Handle position is always at top-left corner of bounds (unrotated, like stickers)
     const handleX = bounds.x
     const handleY = bounds.y
-    const hitRadius = handleRadius + 4
     
     const distance = Math.sqrt(
       Math.pow(coords.canvasX - handleX, 2) + Math.pow(coords.canvasY - handleY, 2)

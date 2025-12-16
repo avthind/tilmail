@@ -53,6 +53,12 @@ const STICKER_FILES: StickerFile[] = [
       'Isometric Stickers - Salad.png',
       'Isometric Stickers - Scrambled Eggs.png',
       'Isometric Stickers - Tacos.png',
+      'The Munchies - Beverage-2.png',
+      'The Munchies - Beverage.png',
+      'The Munchies - Bowl.png',
+      'The Munchies - Desserts-2.png',
+      'The Munchies - Desserts.png',
+      'The Munchies - Dish.png',
     ],
   },
   {
@@ -69,6 +75,8 @@ const STICKER_FILES: StickerFile[] = [
       'Fuzzy Friends - Playful Fox.png',
       'Fuzzy Friends - Romantic Bear.png',
       'Fuzzy Friends - Sweet Koala.png',
+      'The Little Things - Cat.png',
+      'The Little Things - Dog.png',
     ],
   },
   {
@@ -100,8 +108,8 @@ const STICKER_FILES: StickerFile[] = [
 const generateName = (filename: string): string => {
   // Remove file extension
   let name = filename.replace(/\.(png|jpg|jpeg|svg|webp)$/i, '')
-  // Remove common prefixes like "Tiny Little Xmas Parade - " or "Isometric Stickers - " or "Fuzzy Friends - "
-  name = name.replace(/^(Tiny Little Xmas Parade|Isometric Stickers|Fuzzy Friends)\s*-\s*/i, '')
+  // Remove common prefixes like "Tiny Little Xmas Parade - " or "Isometric Stickers - " or "Fuzzy Friends - " or "The Munchies - " or "The Little Things - "
+  name = name.replace(/^(Tiny Little Xmas Parade|Isometric Stickers|Fuzzy Friends|The Munchies|The Little Things)\s*-\s*/i, '')
   return name.trim()
 }
 
