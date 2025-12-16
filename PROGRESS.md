@@ -6,4 +6,6 @@ deploy on domain // send to ppl
 
 other 2 deployed domains on firebase?
 
-later: rotate/resize, user auth, prev tool drawer stays open when flip sides, make viewer mode nicer
+undo/redo with rotation/resize 
+
+later: user auth, prev tool drawer stays open when flip sides, make viewer mode nicer

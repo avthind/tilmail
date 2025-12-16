@@ -160,9 +160,9 @@ export default function StickerPicker() {
 
   return (
     <div className={styles.stickerPicker}>
-      <p className={styles.hint}>
+        <p className={styles.hint}>
         Click on card to place sticker.
-      </p>
+        </p>
       <div className={styles.categoryTabs}>
         {CATEGORIES.map((category) => {
           const categoryStickerCount = STICKERS.filter(s => s.category === category.id).length
@@ -184,28 +184,28 @@ export default function StickerPicker() {
       <div className={styles.stickerGrid}>
         {filteredStickers.length > 0 ? (
           filteredStickers.map((sticker) => (
-            <button
-              key={sticker.id}
-              className={`${styles.stickerButton} ${
-                selectedSticker === sticker.id ? styles.selected : ''
-              }`}
-              onClick={() => handleStickerClick(sticker.id)}
-              aria-label={`Select ${sticker.name} sticker`}
-              title={selectedSticker === sticker.id ? `${sticker.name} selected - Click on card to place` : `Select ${sticker.name}`}
-            >
-              <img
+          <button
+            key={sticker.id}
+            className={`${styles.stickerButton} ${
+              selectedSticker === sticker.id ? styles.selected : ''
+            }`}
+            onClick={() => handleStickerClick(sticker.id)}
+            aria-label={`Select ${sticker.name} sticker`}
+            title={selectedSticker === sticker.id ? `${sticker.name} selected - Click on card to place` : `Select ${sticker.name}`}
+          >
+            <img
                 src={sticker.file}
-                alt={sticker.name}
-                className={styles.stickerImage}
-              />
-              {selectedSticker === sticker.id && (
-                <div className={styles.checkmark}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                </div>
-              )}
-            </button>
+              alt={sticker.name}
+              className={styles.stickerImage}
+            />
+            {selectedSticker === sticker.id && (
+              <div className={styles.checkmark}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+            )}
+          </button>
           ))
         ) : (
           <div className={styles.emptyCategory}>

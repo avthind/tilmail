@@ -17,6 +17,9 @@ function CardViewerContent() {
   const { mode, setMode } = useAppStore()
 
   useEffect(() => {
+    // Set document title for static export compatibility
+    document.title = 'TILmail - View Card'
+    
     // Check window.location for direct card URLs (e.g., /card/abc123)
     const pathCardId = typeof window !== 'undefined' 
       ? window.location.pathname.replace('/card', '').replace(/^\//, '').split('/')[0]

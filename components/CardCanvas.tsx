@@ -30,6 +30,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     updateDecoration,
     updateDecorationWithoutHistory,
     updateDecorationPosition,
+    updateDecorationScale,
+    updateDecorationRotation,
     saveDecorationPositionToHistory,
     addToHistory,
     drawSettings,
@@ -40,6 +42,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
   const [dragOriginalDecoration, setDragOriginalDecoration] = useState<any>(null)
+  const [isResizing, setIsResizing] = useState(false)
+  const [isRotating, setIsRotating] = useState(false)
+  const [resizeStart, setResizeStart] = useState<{ x: number; y: number; distance: number } | null>(null)
+  const [rotateStart, setRotateStart] = useState<{ x: number; y: number; angle: number } | null>(null)
   const [editingTextId, setEditingTextId] = useState<string | null>(null)
   const [editingTextValue, setEditingTextValue] = useState('')
   const [isFlipping, setIsFlipping] = useState(false)
@@ -618,7 +624,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
         const isEditing = currentTool === 'text' && decoration.type === 'text' && editingTextId === decoration.id
 
         if (decoration.type === 'sticker') {
-          const scale = decoration.data.scale || 0.4
+          const scale = decoration.data.scale || 0.6
           const stickerSize = 64 * scale
           const x = (decoration.x + CARD_WIDTH / 2)
           const y = (decoration.y + CARD_HEIGHT / 2)
@@ -648,11 +654,51 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             const borderWidthFinal = borderWidth + 16
             const borderHeightFinal = borderHeight + 16
             
-            ctx.strokeStyle = '#6a9c89'
+            ctx.strokeStyle = '#16423c'
             ctx.lineWidth = 2
-            ctx.setLineDash([5, 5])
             ctx.strokeRect(borderX, borderY, borderWidthFinal, borderHeightFinal)
-            ctx.setLineDash([])
+            
+            // Draw resize handle (bottom-right corner) - square
+            const handleSize = 10
+            const resizeHandleX = borderX + borderWidthFinal - handleSize / 2
+            const resizeHandleY = borderY + borderHeightFinal - handleSize / 2
+            
+            ctx.fillStyle = '#16423c'
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 1.5
+            ctx.fillRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
+            ctx.strokeRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
+            
+            // Draw rotation handle (top-left corner of outline)
+            const rotationHandleX = borderX
+            const rotationHandleY = borderY
+            const rotationHandleRadius = 10 // Same size as delete button (20px diameter = 10px radius)
+            
+            ctx.fillStyle = '#16423c'
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 1.5
+            ctx.beginPath()
+            ctx.arc(rotationHandleX, rotationHandleY, rotationHandleRadius, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.stroke()
+            
+            // Draw rotation icon (circular arrow) - moved inward to avoid blending with border
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 1.5
+            const arrowRadius = rotationHandleRadius - 3.5 // Move arrow 3.5px inward from edge
+            ctx.beginPath()
+            ctx.arc(rotationHandleX, rotationHandleY, arrowRadius, 0.3 * Math.PI, 1.7 * Math.PI)
+            ctx.stroke()
+            // Arrow head - larger and more visible
+            const arrowEndX = rotationHandleX + arrowRadius * Math.cos(1.7 * Math.PI)
+            const arrowEndY = rotationHandleY + arrowRadius * Math.sin(1.7 * Math.PI)
+            ctx.beginPath()
+            ctx.moveTo(arrowEndX, arrowEndY)
+            ctx.lineTo(arrowEndX - 3.5, arrowEndY - 2.5)
+            ctx.lineTo(arrowEndX - 1, arrowEndY)
+            ctx.closePath()
+            ctx.fillStyle = '#ffffff'
+            ctx.fill()
             
             // Draw delete button (X) in top-right corner
             const deleteBtnSize = 20
@@ -695,6 +741,15 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
                 drawWidth = stickerSize * imgAspectRatio
               }
               
+              // Apply rotation if present
+              const rotation = decoration.rotation || 0
+              if (rotation !== 0) {
+                ctx.save()
+                ctx.translate(x, y)
+                ctx.rotate((rotation * Math.PI) / 180)
+                ctx.translate(-x, -y)
+              }
+              
               // Enable high-quality image smoothing for better rendering
               ctx.imageSmoothingEnabled = true
               ctx.imageSmoothingQuality = 'high'
@@ -708,6 +763,10 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
                 drawWidth,
                 drawHeight
               )
+              
+              if (rotation !== 0) {
+                ctx.restore()
+              }
             } else {
               // Fallback circle if image fails to load
               ctx.fillStyle = decoration.data.color || '#ff6b6b'
@@ -759,11 +818,51 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
             const borderWidth = textWidth + 16
             const borderHeight = textHeight + 16
             
-            ctx.strokeStyle = '#6a9c89'
+            ctx.strokeStyle = '#16423c'
             ctx.lineWidth = 2
-            ctx.setLineDash([5, 5]) // Dotted line
             ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
-            ctx.setLineDash([])
+            
+            // Draw resize handle (bottom-right corner) - square
+            const handleSize = 10
+            const resizeHandleX = borderX + borderWidth - handleSize / 2
+            const resizeHandleY = borderY + borderHeight - handleSize / 2
+            
+            ctx.fillStyle = '#16423c'
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 1.5
+            ctx.fillRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
+            ctx.strokeRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
+            
+            // Draw rotation handle (top-center)
+            const rotationHandleX = borderX + borderWidth / 2
+            const rotationHandleY = borderY - 20
+            const rotationHandleRadius = 6
+            
+            ctx.fillStyle = '#16423c'
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 1.5
+            ctx.beginPath()
+            ctx.arc(rotationHandleX, rotationHandleY, rotationHandleRadius, 0, Math.PI * 2)
+            ctx.fill()
+            ctx.stroke()
+            
+            // Draw rotation icon (circular arrow) - moved inward to avoid blending with border
+            ctx.strokeStyle = '#ffffff'
+            ctx.lineWidth = 1.5
+            const arrowRadius = rotationHandleRadius - 3.5 // Move arrow 3.5px inward from edge
+            ctx.beginPath()
+            ctx.arc(rotationHandleX, rotationHandleY, arrowRadius, 0.3 * Math.PI, 1.7 * Math.PI)
+            ctx.stroke()
+            // Arrow head - larger and more visible
+            const arrowEndX = rotationHandleX + arrowRadius * Math.cos(1.7 * Math.PI)
+            const arrowEndY = rotationHandleY + arrowRadius * Math.sin(1.7 * Math.PI)
+            ctx.beginPath()
+            ctx.moveTo(arrowEndX, arrowEndY)
+            ctx.lineTo(arrowEndX - 3.5, arrowEndY - 2.5)
+            ctx.lineTo(arrowEndX - 1, arrowEndY)
+            ctx.closePath()
+            ctx.fillStyle = '#ffffff'
+            ctx.fill()
             
             // Draw delete button (X) in top-right corner
             const deleteBtnSize = 20
@@ -863,11 +962,48 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
               const borderWidth = maxX - minX + padding * 2
               const borderHeight = maxY - minY + padding * 2
               
-              ctx.strokeStyle = '#6a9c89'
+              ctx.strokeStyle = '#16423c'
               ctx.lineWidth = 2
-              ctx.setLineDash([5, 5])
               ctx.strokeRect(borderX, borderY, borderWidth, borderHeight)
-              ctx.setLineDash([])
+              
+              // Draw resize handle (bottom-right corner) - square
+              const handleSize = 12
+              const resizeHandleX = borderX + borderWidth - handleSize / 2
+              const resizeHandleY = borderY + borderHeight - handleSize / 2
+              
+              ctx.fillStyle = '#16423c'
+              ctx.strokeStyle = '#ffffff'
+              ctx.lineWidth = 2
+              ctx.fillRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
+              ctx.strokeRect(resizeHandleX, resizeHandleY, handleSize, handleSize)
+              
+              // Draw rotation handle (top-center)
+              const rotationHandleX = borderX + borderWidth / 2
+              const rotationHandleY = borderY - 20
+              const rotationHandleRadius = 8
+              
+              ctx.fillStyle = '#16423c'
+              ctx.strokeStyle = '#ffffff'
+              ctx.lineWidth = 2
+              ctx.beginPath()
+              ctx.arc(rotationHandleX, rotationHandleY, rotationHandleRadius, 0, Math.PI * 2)
+              ctx.fill()
+              ctx.stroke()
+              
+              // Draw rotation icon (circular arrow)
+              ctx.strokeStyle = '#ffffff'
+              ctx.lineWidth = 1.5
+              ctx.beginPath()
+              ctx.arc(rotationHandleX, rotationHandleY, rotationHandleRadius - 2, 0.3 * Math.PI, 1.7 * Math.PI)
+              ctx.stroke()
+              // Arrow head
+              ctx.beginPath()
+              ctx.moveTo(rotationHandleX + (rotationHandleRadius - 2) * Math.cos(1.7 * Math.PI), rotationHandleY + (rotationHandleRadius - 2) * Math.sin(1.7 * Math.PI))
+              ctx.lineTo(rotationHandleX + (rotationHandleRadius - 2) * Math.cos(1.7 * Math.PI) - 3, rotationHandleY + (rotationHandleRadius - 2) * Math.sin(1.7 * Math.PI) - 2)
+              ctx.lineTo(rotationHandleX + (rotationHandleRadius - 2) * Math.cos(1.7 * Math.PI) - 1, rotationHandleY + (rotationHandleRadius - 2) * Math.sin(1.7 * Math.PI))
+              ctx.closePath()
+              ctx.fillStyle = '#ffffff'
+              ctx.fill()
               
               // Draw delete button (X) in top-right corner
               const deleteBtnSize = 20
@@ -1074,7 +1210,7 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       
       // Better hit detection based on type
       if (d.type === 'sticker') {
-        const scale = d.data.scale || 0.15
+        const scale = d.data.scale || 0.6
         const baseSize = 64 * scale
         const hitRadius = baseSize / 2 + 5 // Sticker radius + padding (using base size for hit detection)
         if (distance < hitRadius) {
@@ -1205,6 +1341,198 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     return distance < hitRadius
   }
 
+  // Helper function to check if click is on resize handle
+  const isClickOnResizeHandle = (coords: { canvasX: number; canvasY: number }, dec: any): boolean => {
+    if (!dec || currentTool !== 'grab' || !selectedDecoration || selectedDecoration.id !== dec.id) return false
+    
+    const bounds = (() => {
+      const x = (dec.x + CARD_WIDTH / 2)
+      const y = (dec.y + CARD_HEIGHT / 2)
+      const padding = 8
+      
+      if (dec.type === 'sticker') {
+        const scale = dec.data.scale || 0.6
+        const baseSize = 64 * scale
+        let actualWidth = baseSize
+        let actualHeight = baseSize
+        if (dec.data.url) {
+          const cachedImg = imageCache.current.get(dec.data.url)
+          if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+            const imgAspectRatio = cachedImg.naturalWidth / cachedImg.naturalHeight
+            if (imgAspectRatio > 1) {
+              actualHeight = baseSize / imgAspectRatio
+            } else {
+              actualWidth = baseSize * imgAspectRatio
+            }
+          }
+        }
+        return {
+          x: x - actualWidth / 2 - padding,
+          y: y - actualHeight / 2 - padding,
+          width: actualWidth + padding * 2,
+          height: actualHeight + padding * 2
+        }
+      } else if (dec.type === 'text') {
+        const canvas = canvasRef.current
+        if (!canvas) return null
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        
+        const fontSize = dec.data.fontSize || 24
+        const fontFamily = dec.data.fontFamily || 'Arial, sans-serif'
+        const fontWeight = dec.data.fontWeight || 'normal'
+        const fontStyle = dec.data.fontStyle || 'normal'
+        ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontStyle} ${fontSize}px ${fontFamily}`
+        const text = dec.data.text || ''
+        const lines = text.split('\n')
+        const lineHeight = fontSize * 1.2
+        let maxTextWidth = 0
+        lines.forEach((line: string) => {
+          const lineWidth = ctx.measureText(line).width
+          maxTextWidth = Math.max(maxTextWidth, lineWidth)
+        })
+        const textWidth = maxTextWidth
+        const textHeight = lines.length * lineHeight
+        
+        return {
+          x: x - textWidth / 2 - padding,
+          y: y - textHeight / 2 - padding,
+          width: textWidth + padding * 2,
+          height: textHeight + padding * 2
+        }
+      } else if (dec.type === 'drawing' && dec.data.paths) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        dec.data.paths.forEach((path: number[][]) => {
+          path.forEach((point: number[]) => {
+            const px = point[0] + CARD_WIDTH / 2
+            const py = point[1] + CARD_HEIGHT / 2
+            minX = Math.min(minX, px)
+            minY = Math.min(minY, py)
+            maxX = Math.max(maxX, px)
+            maxY = Math.max(maxY, py)
+          })
+        })
+        if (minX === Infinity) return null
+        return {
+          x: minX - padding,
+          y: minY - padding,
+          width: maxX - minX + padding * 2,
+          height: maxY - minY + padding * 2
+        }
+      }
+      return null
+    })()
+    
+    if (!bounds) return false
+    
+    const handleSize = 10
+    const handleX = bounds.x + bounds.width
+    const handleY = bounds.y + bounds.height
+    const hitRadius = handleSize / 2 + 4
+    
+    const distance = Math.sqrt(
+      Math.pow(coords.canvasX - handleX, 2) + Math.pow(coords.canvasY - handleY, 2)
+    )
+    
+    return distance < hitRadius
+  }
+
+  // Helper function to check if click is on rotation handle
+  const isClickOnRotationHandle = (coords: { canvasX: number; canvasY: number }, dec: any): boolean => {
+    if (!dec || currentTool !== 'grab' || !selectedDecoration || selectedDecoration.id !== dec.id) return false
+    
+    const bounds = (() => {
+      const x = (dec.x + CARD_WIDTH / 2)
+      const y = (dec.y + CARD_HEIGHT / 2)
+      const padding = 8
+      
+      if (dec.type === 'sticker') {
+        const scale = dec.data.scale || 0.6
+        const baseSize = 64 * scale
+        let actualWidth = baseSize
+        let actualHeight = baseSize
+        if (dec.data.url) {
+          const cachedImg = imageCache.current.get(dec.data.url)
+          if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+            const imgAspectRatio = cachedImg.naturalWidth / cachedImg.naturalHeight
+            if (imgAspectRatio > 1) {
+              actualHeight = baseSize / imgAspectRatio
+            } else {
+              actualWidth = baseSize * imgAspectRatio
+            }
+          }
+        }
+        return {
+          x: x - actualWidth / 2 - padding,
+          y: y - actualHeight / 2 - padding,
+          width: actualWidth + padding * 2,
+          height: actualHeight + padding * 2
+        }
+      } else if (dec.type === 'text') {
+        const canvas = canvasRef.current
+        if (!canvas) return null
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return null
+        
+        const fontSize = dec.data.fontSize || 24
+        const fontFamily = dec.data.fontFamily || 'Arial, sans-serif'
+        const fontWeight = dec.data.fontWeight || 'normal'
+        const fontStyle = dec.data.fontStyle || 'normal'
+        ctx.font = `${fontWeight === 'bold' ? 'bold ' : ''}${fontStyle} ${fontSize}px ${fontFamily}`
+        const text = dec.data.text || ''
+        const lines = text.split('\n')
+        const lineHeight = fontSize * 1.2
+        let maxTextWidth = 0
+        lines.forEach((line: string) => {
+          const lineWidth = ctx.measureText(line).width
+          maxTextWidth = Math.max(maxTextWidth, lineWidth)
+        })
+        const textWidth = maxTextWidth
+        const textHeight = lines.length * lineHeight
+        
+        return {
+          x: x - textWidth / 2 - padding,
+          y: y - textHeight / 2 - padding,
+          width: textWidth + padding * 2,
+          height: textHeight + padding * 2
+        }
+      } else if (dec.type === 'drawing' && dec.data.paths) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        dec.data.paths.forEach((path: number[][]) => {
+          path.forEach((point: number[]) => {
+            const px = point[0] + CARD_WIDTH / 2
+            const py = point[1] + CARD_HEIGHT / 2
+            minX = Math.min(minX, px)
+            minY = Math.min(minY, py)
+            maxX = Math.max(maxX, px)
+            maxY = Math.max(maxY, py)
+          })
+        })
+        if (minX === Infinity) return null
+        return {
+          x: minX - padding,
+          y: minY - padding,
+          width: maxX - minX + padding * 2,
+          height: maxY - minY + padding * 2
+        }
+      }
+      return null
+    })()
+    
+    if (!bounds) return false
+    
+    const handleRadius = 10 // Same size as delete button
+    const handleX = bounds.x
+    const handleY = bounds.y
+    const hitRadius = handleRadius + 4
+    
+    const distance = Math.sqrt(
+      Math.pow(coords.canvasX - handleX, 2) + Math.pow(coords.canvasY - handleY, 2)
+    )
+    
+    return distance < hitRadius
+  }
+
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     // Disable interactions in read-only mode
     if (readOnly) return
@@ -1222,14 +1550,38 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       return
     }
 
-    // Check if clicking on delete button of currently selected decoration (in grab mode)
+    // Check if clicking on resize handle
     if (currentTool === 'grab' && selectedDecoration) {
       const face = selectedDecoration.face
       const selectedDec = decorations[face].find(d => d.id === selectedDecoration.id)
-      if (selectedDec && isClickOnDeleteButton(coords, selectedDec)) {
-        removeDecoration(face, selectedDecoration.id)
-        setSelectedDecoration(null)
-        return
+      if (selectedDec) {
+        if (isClickOnResizeHandle(coords, selectedDec)) {
+          setIsResizing(true)
+          const centerX = (selectedDec.x + CARD_WIDTH / 2)
+          const centerY = (selectedDec.y + CARD_HEIGHT / 2)
+          const distance = Math.sqrt(
+            Math.pow(coords.canvasX - centerX, 2) + Math.pow(coords.canvasY - centerY, 2)
+          )
+          setResizeStart({ x: coords.canvasX, y: coords.canvasY, distance })
+          setDragOriginalDecoration(JSON.parse(JSON.stringify(selectedDec)))
+          return
+        }
+        
+        if (isClickOnRotationHandle(coords, selectedDec)) {
+          setIsRotating(true)
+          const centerX = (selectedDec.x + CARD_WIDTH / 2)
+          const centerY = (selectedDec.y + CARD_HEIGHT / 2)
+          const angle = Math.atan2(coords.canvasY - centerY, coords.canvasX - centerX)
+          setRotateStart({ x: coords.canvasX, y: coords.canvasY, angle })
+          setDragOriginalDecoration(JSON.parse(JSON.stringify(selectedDec)))
+          return
+        }
+        
+        if (isClickOnDeleteButton(coords, selectedDec)) {
+          removeDecoration(face, selectedDecoration.id)
+          setSelectedDecoration(null)
+          return
+        }
       }
     }
     
@@ -1467,14 +1819,14 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     if (!coords) return
 
     // Update hover state for grab mode
-    if (currentTool === 'grab' && !isDragging && !isDrawing) {
+    if (currentTool === 'grab' && !isDragging && !isDrawing && !isResizing && !isRotating) {
       const decoration = findDecorationAtPoint(coords)
       if (decoration) {
         setHoveredDecoration({ face: mode === 'front' ? 'front' : 'back', id: decoration.id })
       } else {
         setHoveredDecoration(null)
       }
-    } else if (!isDragging && !isDrawing) {
+    } else if (!isDragging && !isDrawing && !isResizing && !isRotating) {
       setHoveredDecoration(null)
     }
 
@@ -1483,6 +1835,71 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
       setCurrentPath((prev) => [...prev, { x: coords.canvasX, y: coords.canvasY }])
       // Trigger redraw to show all decorations + current drawing path
       // The redraw will handle drawing the current path along with all decorations
+      return
+    }
+
+    // Handle resize
+    if (isResizing && selectedDecoration && resizeStart && dragOriginalDecoration && currentTool === 'grab') {
+      const face = selectedDecoration.face
+      const decoration = decorations[face].find(d => d.id === selectedDecoration.id)
+      if (decoration && dragOriginalDecoration) {
+        const centerX = (dragOriginalDecoration.x + CARD_WIDTH / 2)
+        const centerY = (dragOriginalDecoration.y + CARD_HEIGHT / 2)
+        const currentDistance = Math.sqrt(
+          Math.pow(coords.canvasX - centerX, 2) + Math.pow(coords.canvasY - centerY, 2)
+        )
+        const scaleFactor = currentDistance / resizeStart.distance
+        
+        if (decoration.type === 'sticker') {
+          const originalScale = dragOriginalDecoration.data.scale || 0.6
+          const newScale = Math.max(0.1, Math.min(2.0, originalScale * scaleFactor))
+          
+          updateDecorationWithoutHistory(face, decoration.id, {
+            ...dragOriginalDecoration.data,
+            scale: newScale,
+          })
+        } else if (decoration.type === 'text') {
+          const originalFontSize = dragOriginalDecoration.data.fontSize || 24
+          const newFontSize = Math.max(12, Math.min(120, originalFontSize * scaleFactor))
+          
+          updateDecorationWithoutHistory(face, decoration.id, {
+            ...dragOriginalDecoration.data,
+            fontSize: newFontSize,
+          })
+        } else if (decoration.type === 'drawing' && dragOriginalDecoration.data.paths) {
+          // Scale all paths
+          const updatedPaths = dragOriginalDecoration.data.paths.map((path: number[][]) =>
+            path.map((point: number[]) => [
+              (point[0] - dragOriginalDecoration.x) * scaleFactor + dragOriginalDecoration.x,
+              (point[1] - dragOriginalDecoration.y) * scaleFactor + dragOriginalDecoration.y
+            ])
+          )
+          
+          updateDecorationWithoutHistory(face, decoration.id, {
+            ...dragOriginalDecoration.data,
+            paths: updatedPaths,
+          })
+        }
+      }
+      return
+    }
+
+    // Handle rotation
+    if (isRotating && selectedDecoration && rotateStart && dragOriginalDecoration && currentTool === 'grab') {
+      const face = selectedDecoration.face
+      const decoration = decorations[face].find(d => d.id === selectedDecoration.id)
+      if (decoration && dragOriginalDecoration) {
+        const centerX = (dragOriginalDecoration.x + CARD_WIDTH / 2)
+        const centerY = (dragOriginalDecoration.y + CARD_HEIGHT / 2)
+        const currentAngle = Math.atan2(coords.canvasY - centerY, coords.canvasX - centerX)
+        const angleDelta = currentAngle - rotateStart.angle
+        const originalRotation = dragOriginalDecoration.rotation || 0
+        let newRotation = originalRotation + (angleDelta * (180 / Math.PI))
+        // Normalize to 0-360 range
+        newRotation = ((newRotation % 360) + 360) % 360
+        
+        updateDecorationRotation(face, decoration.id, newRotation)
+      }
       return
     }
 
@@ -1561,6 +1978,23 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
   const handleMouseUp = (e?: React.MouseEvent<HTMLCanvasElement>) => {
     // Disable interactions in read-only mode
     if (readOnly) return
+    
+    // Save resize/rotation to history when done
+    if (isResizing && selectedDecoration) {
+      const face = selectedDecoration.face
+      saveDecorationPositionToHistory(face, selectedDecoration.id)
+      setIsResizing(false)
+      setResizeStart(null)
+      setDragOriginalDecoration(null)
+    }
+    
+    if (isRotating && selectedDecoration) {
+      const face = selectedDecoration.face
+      saveDecorationPositionToHistory(face, selectedDecoration.id)
+      setIsRotating(false)
+      setRotateStart(null)
+      setDragOriginalDecoration(null)
+    }
     
     // Check if we're about to save a drawing
     const isAboutToSaveDrawing = isDrawing && currentPath.length > 0 && currentTool === 'draw'
@@ -1685,7 +2119,11 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
     }
     
     setIsDragging(false)
+    setIsResizing(false)
+    setIsRotating(false)
     setDragStart(null)
+    setResizeStart(null)
+    setRotateStart(null)
     setDragOriginalDecoration(null)
     // Clear hover state on mouse up
     setHoveredDecoration(null)
@@ -1979,6 +2417,8 @@ export default function CardCanvas({ readOnly = false }: CardCanvasProps = {}) {
           onDoubleClick={handleDoubleClick}
           style={{
             cursor: readOnly ? 'default' :
+                    isResizing ? 'nwse-resize' :
+                    isRotating ? 'grab' :
                     isDragging ? 'grabbing' :
                     (currentTool === 'grab' && hoveredDecoration) ? 'grab' :
                     currentTool === 'grab' ? 'default' :

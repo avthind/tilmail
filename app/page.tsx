@@ -20,6 +20,11 @@ export default function Home() {
   const [cardLoading, setCardLoading] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
 
+  // Set document title for static export compatibility
+  useEffect(() => {
+    document.title = 'TILmail - Create & Share Digital Postcards'
+  }, [])
+
   // Check if this is a card viewer URL and load the card
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -58,6 +63,9 @@ export default function Home() {
           setIsCardViewer(true)
           setCardLoading(true)
           setCardError(null)
+          
+          // Update title for card viewer
+          document.title = 'TILmail - View Card'
           
           // Clear existing decorations first
           useAppStore.setState({ 
