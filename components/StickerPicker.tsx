@@ -4,6 +4,24 @@ import { useState } from 'react'
 import { useAppStore } from '@/store/appStore'
 import styles from './StickerPicker.module.css'
 
+// Helper to get the correct base path for assets
+const getBasePath = (): string => {
+  // In production static export, basePath is '/tilmail'
+  // In development, it's empty
+  if (typeof window !== 'undefined') {
+    // Check if we're running under /tilmail path (most reliable)
+    const pathname = window.location.pathname
+    if (pathname.startsWith('/tilmail')) {
+      return '/tilmail'
+    }
+    // If pathname is just '/' or starts with '/card', we're likely in dev
+    return ''
+  }
+  // For SSR/build time, check environment
+  // In production build, basePath is set to '/tilmail' in next.config.js
+  return process.env.NODE_ENV === 'production' ? '/tilmail' : ''
+}
+
 type StickerCategory = 'christmas' | 'food' | 'animals' | 'more'
 
 interface StickerFile {
@@ -121,14 +139,20 @@ const generateId = (filename: string, category: StickerCategory): string => {
 }
 
 // Generate STICKERS array from folder structure
-const STICKERS = STICKER_FILES.flatMap(({ category, files }) =>
-  files.map((filename) => ({
-    id: generateId(filename, category),
-    name: generateName(filename),
-    file: `/stickers/${category}/${filename}`,
-    category: category as StickerCategory,
-  }))
-)
+// Note: We'll generate the file path dynamically to handle basePath
+const generateStickers = () => {
+  const basePath = getBasePath()
+  return STICKER_FILES.flatMap(({ category, files }) =>
+    files.map((filename) => ({
+      id: generateId(filename, category),
+      name: generateName(filename),
+      file: `${basePath}/stickers/${category}/${filename}`,
+      category: category as StickerCategory,
+    }))
+  )
+}
+
+const STICKERS = generateStickers()
 
 const CATEGORIES: { id: StickerCategory; label: string }[] = [
   { id: 'christmas', label: 'Christmas' },
@@ -139,7 +163,17 @@ const CATEGORIES: { id: StickerCategory; label: string }[] = [
 
 // Export function to get sticker data for placement
 export const getStickerData = (id: string) => {
-  const sticker = STICKERS.find(s => s.id === id)
+  // Regenerate stickers to get current basePath
+  const basePath = getBasePath()
+  const allStickers = STICKER_FILES.flatMap(({ category, files }) =>
+    files.map((filename) => ({
+      id: generateId(filename, category),
+      name: generateName(filename),
+      file: `${basePath}/stickers/${category}/${filename}`,
+      category: category as StickerCategory,
+    }))
+  )
+  const sticker = allStickers.find(s => s.id === id)
   if (!sticker) return null
   return {
     url: sticker.file,
@@ -151,6 +185,17 @@ export const getStickerData = (id: string) => {
 export default function StickerPicker() {
   const { setSelectedSticker, selectedSticker, currentTool } = useAppStore()
   const [selectedCategory, setSelectedCategory] = useState<StickerCategory>('christmas')
+  
+  // Regenerate stickers on mount to ensure correct basePath
+  const basePath = getBasePath()
+  const stickers = STICKER_FILES.flatMap(({ category, files }) =>
+    files.map((filename) => ({
+      id: generateId(filename, category),
+      name: generateName(filename),
+      file: `${basePath}/stickers/${category}/${filename}`,
+      category: category as StickerCategory,
+    }))
+  )
 
   const handleStickerClick = (stickerId: string) => {
     // Industry standard: clicking the same sticker again deselects it
@@ -164,7 +209,7 @@ export default function StickerPicker() {
   }
 
   // Filter stickers by selected category
-  const filteredStickers = STICKERS.filter(sticker => sticker.category === selectedCategory)
+  const filteredStickers = stickers.filter(sticker => sticker.category === selectedCategory)
 
   return (
     <div className={styles.stickerPicker}>
@@ -173,7 +218,7 @@ export default function StickerPicker() {
         </p>
       <div className={styles.categoryTabs}>
         {CATEGORIES.map((category) => {
-          const categoryStickerCount = STICKERS.filter(s => s.category === category.id).length
+          const categoryStickerCount = stickers.filter(s => s.category === category.id).length
           return (
             <button
               key={category.id}
